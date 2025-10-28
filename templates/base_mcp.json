@@ -1,0 +1,95 @@
+[
+    {
+        "name": "Fetch",
+        "description": "A Model Context Protocol server providing tools to fetch and convert web content for usage by LLMs",
+        "mcp": {
+            "modelcontextprotocol/fetch": {
+                "type": "stdio",
+                "command": "uvx",
+                "args": [
+                    "mcp-server-fetch"
+                ],
+                "gallery": "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch",
+                "version": "0.6.3"
+            }
+        }
+    },
+    {
+        "name": "Filesystem",
+        "description": "MCP server for filesystem access",
+        "mcp": {
+            "modelcontextprotocol/filesystem": {
+                "type": "stdio",
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-filesystem"
+                ],
+                "gallery": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+                "version": "0.6.3"
+            }
+        }
+    },
+    {
+        "name": "Git",
+        "description": "A Model Context Protocol server providing tools to read, search, and manipulate Git repositories programmatically via LLMs",
+        "mcp": {
+            "modelcontextprotocol/git": {
+                "type": "stdio",
+                "command": "uvx",
+                "args": [
+                    "mcp-server-git"
+                ],
+                "gallery": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
+                "version": "0.6.2"
+            }
+        }
+    },
+    {
+        "name": "Memory",
+        "description": "MCP server for enabling memory for Claude through a knowledge graph",
+        "mcp": {
+            "modelcontextprotocol/memory": {
+                "type": "stdio",
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-memory"
+                ],
+                "gallery": "https://github.com/modelcontextprotocol/servers/tree/main/src/memory",
+                "version": "0.6.3"
+            }
+        }
+    },
+    {
+        "name": "Sequential Thinking",
+        "description": "MCP server for sequential thinking and problem solving",
+        "mcp": {
+            "modelcontextprotocol/sequentialthinking": {
+                "type": "stdio",
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-sequential-thinking"
+                ],
+                "gallery": "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking",
+                "version": "0.6.2"
+            }
+        }
+    },
+    {
+        "name": "Time",
+        "description": "A Model Context Protocol server providing tools for time queries and timezone conversions for LLMs",
+        "mcp": {
+            "modelcontextprotocol/time": {
+                "type": "stdio",
+                "command": "uvx",
+                "args": [
+                    "mcp-server-time"
+                ],
+                "gallery": "https://github.com/modelcontextprotocol/servers/tree/main/src/time",
+                "version": "0.6.2"
+            }
+        }
+    }
+]

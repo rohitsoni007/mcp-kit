@@ -10,7 +10,8 @@ API_PATH="servers"
 LIMIT=50
 API_URL="${BASE_URL}/${DATE}/${API_VERSION}/${API_PATH}"
 SERVER_API_URL="${API_URL}?limit=${LIMIT}"
-OUTPUT_FILE="mcp_servers.json"
+DIST_FOLDER="dist"
+OUTPUT_FILE="$DIST_FOLDER/mcp_servers.json"
 BASE_TEMPLATE_FILE="templates/base_mcp.json"
 
 # Load base template data
@@ -182,6 +183,12 @@ if [ "$total_servers" -eq 0 ]; then
     echo -e "\033[33m⚠️ No servers processed. Saving raw_response.json for inspection...\033[0m"
     echo "$response" | jq . > raw_response.json
     exit 1
+fi
+
+# Create dist folder if it doesn't exist
+if [ ! -d "$DIST_FOLDER" ]; then
+    mkdir -p "$DIST_FOLDER"
+    echo -e "\033[32mCreated directory: $DIST_FOLDER\033[0m"
 fi
 
 # Save final JSON (compact format)

@@ -8,7 +8,8 @@ $API_PATH = "servers"
 $LIMIT = 50
 $API_URL = "${BASE_URL}/${DATE}/${API_VERSION}/${API_PATH}"
 $serverApiUrl = "${API_URL}?limit=${LIMIT}"
-$outputFile = "mcp_servers.json"
+$distFolder = "dist"
+$outputFile = "$distFolder/mcp_servers.json"
 $baseTemplateFile = "templates/base_mcp.json"
 
 # Load base template data
@@ -177,6 +178,12 @@ if ($totalServers -eq 0) {
     Write-Host "⚠️ No servers processed. Saving raw_response.json for inspection..." -ForegroundColor Yellow
     $response | ConvertTo-Json -Depth 10 | Out-File "raw_response.json" -Encoding UTF8
     exit 1
+}
+
+# Create dist folder if it doesn't exist
+if (-not (Test-Path $distFolder)) {
+    New-Item -ItemType Directory -Path $distFolder -Force | Out-Null
+    Write-Host "Created directory: $distFolder" -ForegroundColor Green
 }
 
 # Save final JSON

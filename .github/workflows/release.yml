@@ -17,6 +17,10 @@ on:
         required: false
         default: 'v1.0.0'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   generate-and-update:
     runs-on: ubuntu-latest
@@ -71,41 +75,6 @@ jobs:
           echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         fi
       
-    - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
-      uses: actions/create-release@v1
-      id: create_release
-      with:
-        tag_name: ${{ steps.tag.outputs.tag }}
-        release_name: Release ${{ steps.tag.outputs.tag }}
-        body: |
-          ## MCP Servers Release ${{ steps.tag.outputs.tag }}
-          
-          This release contains the latest MCP servers configuration file.
-          
-          ### 📦 Downloads
-          - **`mcp_servers.json`** - Individual JSON file for direct use
-          - **`mcp-servers-${{ steps.tag.outputs.tag }}.zip`** - Complete distribution package
-          
-          ### 📋 What's Included
-          - Complete list of available MCP servers
-          - Base template servers from `templates/base_mcp.json`
-          - Dynamically fetched servers from the MCP registry
-          - Total servers: Base + Fetched from API
-          
-          ### 🚀 Usage
-          1. Download either the JSON file directly or the zip package
-          2. Use with your MCP-compatible tools and applications
-          3. The JSON file contains all server configurations in a standardized format
-          
-          ### ⚠️ Note
-          **Ignore the "Source code" downloads** - they contain the entire repository. 
-          Use the files listed above for the MCP servers data.
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
     - name: Create distribution zip
       if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
       run: |
@@ -113,24 +82,34 @@ jobs:
         zip -r ../mcp-servers-${{ steps.tag.outputs.tag }}.zip .
         cd ..
         
-    - name: Upload JSON Release Asset
+    - name: Create Release with GitHub CLI
       if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/mcp_servers.json
-        asset_name: mcp_servers.json
-        asset_content_type: application/json
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Upload Zip Release Asset
-      if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./mcp-servers-${{ steps.tag.outputs.tag }}.zip
-        asset_name: mcp-servers-${{ steps.tag.outputs.tag }}.zip
-        asset_content_type: application/zip
+      run: |
+        gh release create ${{ steps.tag.outputs.tag }} \
+          --title "Release ${{ steps.tag.outputs.tag }}" \
+          --notes "## MCP Servers Release ${{ steps.tag.outputs.tag }}
+
+        This release contains the latest MCP servers configuration file.
+
+        ### 📦 Downloads
+        - **\`mcp_servers.json\`** - Individual JSON file for direct use
+        - **\`mcp-servers-${{ steps.tag.outputs.tag }}.zip\`** - Complete distribution package
+
+        ### 📋 What's Included
+        - Complete list of available MCP servers
+        - Base template servers from \`templates/base_mcp.json\`
+        - Dynamically fetched servers from the MCP registry
+        - Total servers: Base + Fetched from API
+
+        ### 🚀 Usage
+        1. Download either the JSON file directly or the zip package
+        2. Use with your MCP-compatible tools and applications
+        3. The JSON file contains all server configurations in a standardized format
+
+        ### ⚠️ Note
+        **Ignore the \"Source code\" downloads** - they contain the entire repository. 
+        Use the files listed above for the MCP servers data." \
+          ./dist/mcp_servers.json \
+          ./mcp-servers-${{ steps.tag.outputs.tag }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

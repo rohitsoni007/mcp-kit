@@ -6,7 +6,7 @@ Thank you for your interest in contributing to MCP Kit! This document provides g
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - [uv](https://docs.astral.sh/uv/) package manager
 - Git
 
@@ -91,7 +91,7 @@ mcp --version
 3. **Test cross-platform compatibility:**
    - Test on different operating systems if possible
    - Test with different terminal environments
-   - Test with different Python versions (3.8, 3.9, 3.10, 3.11, 3.12)
+   - Test with different Python versions (3.11, 3.12, 3.13)
 
 ## Code Style and Standards
 

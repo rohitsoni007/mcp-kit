@@ -9,13 +9,17 @@ on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: 'Create a release using pyproject.toml version'
+        description: 'Create a release and auto-increment version'
         type: boolean
         default: false
-      tag:
-        description: 'Custom release tag (optional - defaults to pyproject.toml version)'
-        required: false
-        default: ''
+      version_bump:
+        description: 'Version bump type'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
 
 permissions:
   contents: write
@@ -65,6 +69,47 @@ jobs:
         path: dist/mcp_servers.json
         retention-days: 30
         
+    - name: Setup Python
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install bump2version
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
+      run: pip install bump2version
+      
+    - name: Auto-increment version
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
+      run: |
+        # Configure git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Create .bumpversion.cfg if it doesn't exist
+        if [ ! -f .bumpversion.cfg ]; then
+          cat > .bumpversion.cfg << EOF
+        [bumpversion]
+        current_version = $(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        commit = True
+        tag = True
+        
+        [bumpversion:file:pyproject.toml]
+        search = version = "{current_version}"
+        replace = version = "{new_version}"
+        
+        [bumpversion:file:src/mcp_cli/__init__.py]
+        search = __version__ = "{current_version}"
+        replace = __version__ = "{new_version}"
+        EOF
+        fi
+        
+        # Bump version
+        bump2version ${{ github.event.inputs.version_bump }}
+        
+        # Push changes
+        git push origin main --tags
+        
     - name: Get version from pyproject.toml
       id: version
       run: |
@@ -77,11 +122,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          if [ "${{ github.event.inputs.create_release }}" = "true" ]; then
-            echo "tag=v${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          fi
+          echo "tag=v${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
         else
           echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         fi

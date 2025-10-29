@@ -56,80 +56,42 @@ cd mcp-kit
 uv sync
 ```
 
-## Usage
-
-### Download and Configure MCP Servers
-
-```bash
-# Interactive mode - select agent and servers
-mcp download
-
-# Specify version and agent
-mcp download --version v0.1.0 --agent copilot
-
-# Short form (currently only copilot is supported)
-mcp download -v v0.2.0 -a copilot
-```
-
-### Initialize New MCP Project
-
-```bash
-mcp init <project_name>
-```
-
-## Configuration Paths
-
-MCP Kit automatically detects and configures the correct paths for your AI coding agent:
-
-- **Cross-platform**: Automatically handles Windows, macOS, and Linux path differences
 
 ## Supported AI Agents
 
-| Agent | CLI ID | Status |
+| Agent | CLI ID | Support |
 |-------|--------|---------|
-| **[GitHub Copilot](https://github.com/features/copilot)** | `copilot` | ✅ Supported |
-| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ Supported |
+| **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |
+| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |
 | **[Kiro](https://kiro.dev)** | `kiro` | 🚧 Coming Soon |
 
 ### Usage Examples
 
 ```bash
+# Interactive selection (choose from available agents)
+mcp download
+
 # Configure for GitHub Copilot
 mcp download --agent copilot
 
 # Configure for Continue
 mcp download --agent continue
 
-# Interactive selection (choose from available agents)
-mcp download
+# Specify version and agent
+mcp download --version v0.1.0 --agent copilot
+
+# Short form
+mcp download -v v0.2.0 -a copilot
+
 ```
 
-### Adding New Agents
-
-MCP Kit is designed to be extensible. To add support for new AI agents:
-
-1. Update the `AGENT_CONFIG` in `src/mcp_cli/__init__.py`
-2. Add the agent's configuration path logic in `get_mcp_config_path()`
-3. Ensure the correct configuration format in `create_mcp_config()`
-
-**Planned Support**: Kiro, Cursor, Zed, Claude Desktop, and other MCP-compatible agents. 
-
-
-## Example Workflow
-
-1. Run `mcp download`
-2. Select your preferred agent (e.g., GitHub Copilot)
-3. Choose MCP servers from the interactive list
-4. Configuration is automatically saved to the correct location
-
-
-## Development
-
-### Running Tests
+### Initialize New Project With MCP's & Rules for MCP (🚧 Not Implemented yet)
 
 ```bash
-python final_test.py
+mcp init <project_name>
 ```
+
+## Development
 
 ### Project Structure
 
@@ -137,7 +99,6 @@ python final_test.py
 mcp-kit/
 ├── src/mcp_cli/           # Main CLI package
 │   ├── __init__.py        # Core CLI functionality
-│   └── __main__.py        # Module entry point
 ├── templates/             # Configuration templates
 ├── scripts/               # Build and deployment scripts
 └── tests/                 # Test files

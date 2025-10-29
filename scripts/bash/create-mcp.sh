@@ -1,0 +1,191 @@
+#!/bin/bash
+# create-mcp.sh
+# Purpose: Download MCP servers and generate JSON output dynamically
+# Detects HTTP (via remotes[].transport_type == "sse") and STDIO servers
+
+BASE_URL="https://api.mcp.github.com"
+DATE="2025-09-15"
+API_VERSION="v0"
+API_PATH="servers"
+LIMIT=50
+API_URL="${BASE_URL}/${DATE}/${API_VERSION}/${API_PATH}"
+SERVER_API_URL="${API_URL}?limit=${LIMIT}"
+OUTPUT_FILE="mcp_servers.json"
+BASE_TEMPLATE_FILE="templates/base_mcp.json"
+
+# Load base template data
+echo -e "\033[36mLoading base template from $BASE_TEMPLATE_FILE ...\033[0m"
+base_data="[]"
+base_servers_count=0
+
+if [ -f "$BASE_TEMPLATE_FILE" ]; then
+    if base_data=$(jq . "$BASE_TEMPLATE_FILE" 2>/dev/null); then
+        base_servers_count=$(echo "$base_data" | jq 'length')
+        echo -e "\033[32m✅ Loaded $base_servers_count base servers from template\033[0m"
+    else
+        echo -e "\033[33m⚠️ Failed to load base template: Invalid JSON\033[0m"
+        base_data="[]"
+    fi
+else
+    echo -e "\033[33m⚠️ Base template file not found: $BASE_TEMPLATE_FILE\033[0m"
+fi
+
+echo -e "\033[36mFetching MCP server data from $SERVER_API_URL ...\033[0m"
+
+# Fetch data from API
+response=$(curl -s -H "User-Agent: Bash-MCP-Client" -H "Accept: application/json" "$SERVER_API_URL")
+
+if [ $? -ne 0 ] || [ -z "$response" ]; then
+    echo -e "\033[31m❌ Failed to fetch data from API.\033[0m"
+    exit 1
+fi
+
+# Check if response is valid JSON
+if ! echo "$response" | jq . >/dev/null 2>&1; then
+    echo -e "\033[31m❌ Invalid JSON response received.\033[0m"
+    exit 1
+fi
+
+# Extract servers array from response
+servers=$(echo "$response" | jq -r '.servers // .items // .')
+
+if [ "$servers" = "null" ] || [ -z "$servers" ]; then
+    echo -e "\033[33m⚠️ Unexpected response shape. Saving raw_response.json...\033[0m"
+    echo "$response" | jq . > raw_response.json
+    exit 1
+fi
+
+server_count=$(echo "$servers" | jq 'length')
+echo -e "\033[32m✅ Found $server_count servers. Processing...\033[0m"
+
+# Start with base template data
+formatted_data="$base_data"
+if [ "$base_servers_count" -gt 0 ]; then
+    echo -e "\033[32m✅ Added $base_servers_count base servers to output\033[0m"
+fi
+
+# Process each server
+for i in $(seq 0 $((server_count - 1))); do
+    server=$(echo "$servers" | jq ".[$i]")
+    
+    name=$(echo "$server" | jq -r '.name // empty')
+    description=$(echo "$server" | jq -r '.description // empty')
+    version=$(echo "$server" | jq -r '.version // empty')
+    remotes=$(echo "$server" | jq '.remotes // []')
+    
+    # Extract MCP ID if available
+    mcp_id=$(echo "$server" | jq -r '._meta."io.modelcontextprotocol.registry/official".id // empty')
+    
+    if [ -n "$mcp_id" ]; then
+        gallery="${API_URL}/${mcp_id}"
+    else
+        gallery="$API_URL"
+    fi
+    
+    if [ -z "$name" ]; then
+        continue
+    fi
+    
+    # Create simple name
+    simple_name=$(basename "$name")
+    simple_name="$(echo "${simple_name:0:1}" | tr '[:lower:]' '[:upper:]')${simple_name:1}"
+    
+    # Detect HTTP type (via remotes[].transport_type)
+    is_http=false
+    url=""
+    header_key_name=""
+    
+    remote_count=$(echo "$remotes" | jq 'length')
+    for j in $(seq 0 $((remote_count - 1))); do
+        remote=$(echo "$remotes" | jq ".[$j]")
+        transport_type=$(echo "$remote" | jq -r '.transport_type // empty')
+        
+        if [ -n "$transport_type" ]; then
+            is_http=true
+            url=$(echo "$remote" | jq -r '.url // empty')
+            header_key_name=$(echo "$remote" | jq -r '.headers[0].name // empty')
+            break
+        fi
+    done
+    
+    # Build MCP entry based on detected type
+    if [ "$is_http" = true ]; then
+        # HTTP type
+        mcp_entry=$(jq -n \
+            --arg type "http" \
+            --arg url "$url" \
+            --arg gallery "$gallery" \
+            --arg version "$version" \
+            '{type: $type, url: $url, gallery: $gallery, version: $version}')
+        
+        # Add headers if we have a valid header key name
+        if [ -n "$header_key_name" ]; then
+            mcp_entry=$(echo "$mcp_entry" | jq --arg key "$header_key_name" '.headers = {($key): "YOUR_API_KEY"}')
+        fi
+    else
+        # STDIO type
+        packages=$(echo "$server" | jq '.packages // []')
+        identifier=""
+        package_version=""
+        runtime_hint=""
+        
+        if [ "$(echo "$packages" | jq 'length')" -gt 0 ]; then
+            package=$(echo "$packages" | jq '.[0]')
+            identifier=$(echo "$package" | jq -r '.identifier // empty')
+            package_version=$(echo "$package" | jq -r '.version // empty')
+            registry_type=$(echo "$package" | jq -r '.registry_type // empty')
+            runtime_hint=$(echo "$package" | jq -r '.runtime_hint // empty')
+            
+            if [ "$registry_type" = "pypi" ]; then
+                runtime_hint="uvx"
+            fi
+        fi
+        
+        # Build args array
+        if [ -n "$identifier" ] && [ -n "$package_version" ]; then
+            if [ "$package_version" = "latest" ]; then
+                args="[\"$identifier@$package_version\"]"
+            else
+                args="[\"$identifier==$package_version\"]"
+            fi
+        elif [ -n "$identifier" ]; then
+            args="[\"$identifier\"]"
+        else
+            args="[\"$identifier\"]"
+        fi
+        
+        mcp_entry=$(jq -n \
+            --arg type "stdio" \
+            --arg command "$runtime_hint" \
+            --argjson args "$args" \
+            --arg gallery "$gallery" \
+            --arg version "$version" \
+            '{type: $type, command: $command, args: $args, gallery: $gallery, version: $version}')
+    fi
+    
+    # Build final object
+    mcp_object=$(jq -n \
+        --arg name "$simple_name" \
+        --arg description "$description" \
+        --arg server_name "$name" \
+        --argjson mcp_entry "$mcp_entry" \
+        '{name: $name, description: $description, mcp: {($server_name): $mcp_entry}}')
+    
+    # Add to formatted data array
+    formatted_data=$(echo "$formatted_data" | jq ". += [$mcp_object]")
+done
+
+total_servers=$(echo "$formatted_data" | jq 'length')
+fetched_servers_count=$((total_servers - base_servers_count))
+
+if [ "$total_servers" -eq 0 ]; then
+    echo -e "\033[33m⚠️ No servers processed. Saving raw_response.json for inspection...\033[0m"
+    echo "$response" | jq . > raw_response.json
+    exit 1
+fi
+
+# Save final JSON (compact format)
+echo "$formatted_data" | jq -c . > "$OUTPUT_FILE"
+
+echo -e "\033[32m✅ JSON file generated successfully: $OUTPUT_FILE\033[0m"
+echo -e "\033[36mTotal servers: $total_servers (Base: $base_servers_count, Fetched: $fetched_servers_count)\033[0m"

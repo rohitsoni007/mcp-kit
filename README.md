@@ -4,14 +4,14 @@ A command-line interface tool for downloading and configuring Model Context Prot
 
 ## Overview
 
-MCP Kit provides an interactive way to discover, download, and configure MCP servers from the official [Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers) and [Github Mcp Registry](https://github.com/mcp) ecosystem. The tool automatically configures servers for your preferred AI coding agent (currently GitHub Copilot, with Continue support planned) with cross-platform support and intelligent configuration management.
+MCP Kit provides an interactive way to discover, download, and configure MCP servers from the official [Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers) and [Github Mcp Registry](https://github.com/mcp) ecosystem. The tool automatically configures servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
 
 The Model Context Protocol (MCP) is an open standard that enables AI assistants to securely access external data sources and tools. MCP Kit simplifies the process of integrating these powerful capabilities into your development workflow.
 
 ## Features
 
 - 🚀 Download MCP servers from GitHub releases
-- 🎯 Interactive agent selection (GitHub Copilot supported, Continue planned)
+- 🎯 Interactive agent selection
 - 📋 Interactive MCP server selection
 - 🔧 Automatic configuration file generation
 - 🌍 Cross-platform support (Windows, Linux, macOS)
@@ -81,20 +81,38 @@ mcp init <project_name>
 
 MCP Kit automatically detects and configures the correct paths for your AI coding agent:
 
-### VS Code / GitHub Copilot
-- **Windows**: `~/AppData/Roaming/Code/User/mcp.json`
-- **Linux**: `~/.config/Code/User/mcp.json`
-- **macOS**: `~/Library/Application Support/Code/User/mcp.json`
-
-### Continue
-- **Windows**: `~/AppData/Roaming/Code/User/mcp.json`
-- **Linux**: `~/.config/Code/User/mcp.json`
-- **macOS**: `~/Library/Application Support/Code/User/mcp.json`
+- **Cross-platform**: Automatically handles Windows, macOS, and Linux path differences
 
 ## Supported AI Agents
 
-- **[GitHub Copilot](https://code.visualstudio.com)** (`copilot`) - Microsoft's AI pair programmer
-- **[Continue](https://github.com/continuedev/continue)** (`continue`) - Open-source AI code assistant ⚠️ **Not implemented yet**
+| Agent | CLI ID | Status |
+|-------|--------|---------|
+| **[GitHub Copilot](https://github.com/features/copilot)** | `copilot` | ✅ Supported |
+| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ Supported |
+| **[Kiro](https://kiro.dev)** | `kiro` | 🚧 Coming Soon |
+
+### Usage Examples
+
+```bash
+# Configure for GitHub Copilot
+mcp download --agent copilot
+
+# Configure for Continue
+mcp download --agent continue
+
+# Interactive selection (choose from available agents)
+mcp download
+```
+
+### Adding New Agents
+
+MCP Kit is designed to be extensible. To add support for new AI agents:
+
+1. Update the `AGENT_CONFIG` in `src/mcp_cli/__init__.py`
+2. Add the agent's configuration path logic in `get_mcp_config_path()`
+3. Ensure the correct configuration format in `create_mcp_config()`
+
+**Planned Support**: Kiro, Cursor, Zed, Claude Desktop, and other MCP-compatible agents. 
 
 
 ## Example Workflow

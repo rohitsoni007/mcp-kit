@@ -83,11 +83,12 @@ AGENT_CONFIG = {
 }
 
 BANNER = r"""
- __  __  ____  ____     ____  _     ___ 
-|  \/  |/ ___||  _ \   / ___|| |   |_ _|
-| |\/| | |    | |_) | | |    | |    | | 
-| |  | | |___ |  __/  | |___ | |___ | | 
-|_|  |_|\____||_|      \____||_____|___|
+███╗   ███╗ ██████╗██████╗      ██████╗██╗     ██╗
+████╗ ████║██╔════╝██╔══██╗    ██╔════╝██║     ██║
+██╔████╔██║██║     ██████╔╝    ██║     ██║     ██║
+██║╚██╔╝██║██║     ██╔═══╝     ██║     ██║     ██║
+██║ ╚═╝ ██║╚██████╗██║         ╚██████╗███████╗██║
+╚═╝     ╚═╝ ╚═════╝╚═╝          ╚═════╝╚══════╝╚═╝
 """
 
 TAGLINE = "MCP Kit - SETUP MCP"
@@ -113,7 +114,7 @@ app = typer.Typer(
 def show_banner():
     """Display the ASCII art banner."""
     banner_lines = BANNER.strip().split('\n')
-    colors = ["bright_blue", "blue", "cyan", "bright_cyan", "white", "bright_white"]
+    colors = ["dark_cyan", "cyan", "bright_cyan", "blue", "bright_blue", "light_blue"]
 
     styled_banner = Text()
     for i, line in enumerate(banner_lines):
@@ -267,55 +268,276 @@ def download_mcp_servers(version: str = None) -> Optional[List[Dict[str, Any]]]:
         return load_local_mcp_servers()
 
 def select_agent() -> Optional[str]:
-    """Interactive agent selection."""
-    console.print("\n[bold cyan]Available Agents:[/bold cyan]")
-    
+    """Interactive agent selection with keyboard navigation using table format."""
     agents = list(AGENT_CONFIG.keys())
-    for i, agent_key in enumerate(agents, 1):
-        agent = AGENT_CONFIG[agent_key]
-        console.print(f"  {i}. {agent['name']}")
+    selected_index = 0
+    
+    def render_agent_table():
+        """Render the agent selection interface using a table."""
+        try:
+            console.clear()
+        except Exception:
+            # Fallback if clear doesn't work
+            console.print("\n" * 50)
+        
+        # Show banner
+        show_banner()
+        
+        # Create table
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Selector", style="cyan", width=3)
+        table.add_column("Agent", style="white", min_width=20)
+        table.add_column("Description", style="dim")
+        
+        # Add rows to table
+        for i, agent_key in enumerate(agents):
+            agent = AGENT_CONFIG[agent_key]
+            
+            if i == selected_index:
+                # Highlighted selection
+                selector = "▶"
+                agent_style = "bold cyan"
+                desc_style = "cyan"
+            else:
+                # Normal item
+                selector = " "
+                agent_style = "cyan"
+                desc_style = "dim"
+            
+            table.add_row(
+                Text(selector, style="cyan"),
+                Text(agent_key, style=agent_style),
+                Text(f"({agent['name']})", style=desc_style)
+            )
+        
+        # Wrap table in a panel with border
+        panel = Panel(
+            table,
+            title="[bold cyan]Choose your AI assistant:[/bold cyan]",
+            border_style="cyan",
+            padding=(1, 2)
+        )
+        
+        console.print(panel)
+        console.print()
+        console.print(Text("Use ↑/↓ to navigate, Enter to select, Esc to cancel", style="dim"))
+    
+    # Initial render
+    render_agent_table()
     
     while True:
         try:
-            choice = Prompt.ask(
-                "\nSelect an agent",
-                choices=[str(i) for i in range(1, len(agents) + 1)],
-                default="1"
-            )
-            return agents[int(choice) - 1]
-        except (ValueError, IndexError):
-            console.print("[red]Invalid selection. Please try again.[/red]")
+            # Read a single character
+            key = readchar.readkey()
+            
+            if key == readchar.key.UP:
+                selected_index = (selected_index - 1) % len(agents)
+                render_agent_table()
+            elif key == readchar.key.DOWN:
+                selected_index = (selected_index + 1) % len(agents)
+                render_agent_table()
+            elif key == readchar.key.ENTER or key == '\r' or key == '\n':
+                return agents[selected_index]
+            elif key == readchar.key.ESC or key == '\x1b':
+                return None
+            elif key.lower() == 'q':
+                return None
+                
+        except KeyboardInterrupt:
+            return None
+        except Exception:
+            # Handle any readchar exceptions gracefully
+            continue
 
-def select_mcp_servers(servers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Interactive MCP server selection."""
-    console.print("\n[bold cyan]Available MCP Servers:[/bold cyan]")
+def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[str, Any]]:
+    """Interactive MCP server selection with keyboard navigation, table format, and pagination."""
+    selected_indices = set()
+    current_index = 0
+    current_page = 0
+    items_per_page = 10  # Show 10 servers per page
     
-    for i, server in enumerate(servers, 1):
-        console.print(f"  {i}. {server['name']} - {server['description']}")
+    def get_page_items():
+        """Get items for the current page."""
+        start_idx = current_page * items_per_page
+        end_idx = min(start_idx + items_per_page, len(servers))
+        return servers[start_idx:end_idx], start_idx, end_idx
     
-    selected_servers = []
+    def get_total_pages():
+        """Calculate total number of pages."""
+        return (len(servers) + items_per_page - 1) // items_per_page
+    
+    def render_server_table():
+        """Render the MCP server selection interface using a table with pagination."""
+        try:
+            console.clear()
+        except Exception:
+            # Fallback if clear doesn't work
+            console.print("\n" * 50)
+        
+        # Show banner
+        show_banner()
+        
+        # Show selected agent
+        agent_info = f"Selected Agent: {agent} ({AGENT_CONFIG[agent]['name']})"
+        console.print(Align.center(Text(agent_info, style="bold green")))
+        console.print()
+        
+        # Get current page items
+        page_items, start_idx, end_idx = get_page_items()
+        total_pages = get_total_pages()
+        
+        # Create table
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Selector", style="cyan", width=3)
+        table.add_column("Checkbox", style="white", width=3)
+        table.add_column("Server", style="white", min_width=20)
+        table.add_column("Description", style="dim", max_width=60)
+        
+        # Add rows to table for current page
+        for i, server in enumerate(page_items):
+            global_index = start_idx + i
+            
+            if global_index == current_index:
+                # Highlighted selection
+                selector = "▶"
+                checkbox_style = "bold cyan"
+                server_style = "bold cyan"
+                desc_style = "cyan"
+            else:
+                # Normal item
+                selector = " "
+                if global_index in selected_indices:
+                    checkbox_style = "bright_green"
+                    server_style = "bright_green"
+                    desc_style = "green"
+                else:
+                    checkbox_style = "white"
+                    server_style = "white"
+                    desc_style = "dim"
+            
+            checkbox = "☑" if global_index in selected_indices else "☐"
+            
+            # Truncate description if too long
+            description = server['description']
+            if len(description) > 60:
+                description = description[:57] + "..."
+            
+            table.add_row(
+                Text(selector, style="cyan"),
+                Text(checkbox, style=checkbox_style),
+                Text(server['name'], style=server_style),
+                Text(description, style=desc_style)
+            )
+        
+        # Create status info for the panel subtitle
+        selected_count = len(selected_indices)
+        status_info = f"Selected: {selected_count} server{'s' if selected_count != 1 else ''}"
+        
+        if total_pages > 1:
+            status_info += f" | Page {current_page + 1} of {total_pages} | Showing {start_idx + 1}-{end_idx} of {len(servers)}"
+        
+        # Wrap table in a panel with border
+        panel = Panel(
+            table,
+            title="[bold cyan]Choose MCP servers to install:[/bold cyan]",
+            subtitle=f"[bold yellow]{status_info}[/bold yellow]",
+            border_style="cyan",
+            padding=(1, 2)
+        )
+        
+        console.print(panel)
+        console.print()
+        
+        # Help text
+        help_lines = [
+            "Use ↑/↓ to navigate, Space to toggle, Enter to confirm, Esc to cancel",
+        ]
+        
+        if total_pages > 1:
+            help_lines.append("Use ←/→ or PgUp/PgDn to change pages")
+        
+        help_lines.append("A=select all, N=select none")
+        
+        for line in help_lines:
+            console.print(Text(line, style="dim"))
+    
+    # Initial render
+    render_server_table()
     
     while True:
         try:
-            choices = Prompt.ask(
-                "\nSelect MCP servers (comma-separated numbers, e.g., 1,3,5)",
-                default="1"
-            )
+            # Read a single character
+            key = readchar.readkey()
             
-            indices = [int(x.strip()) - 1 for x in choices.split(",")]
-            
-            # Validate indices
-            for idx in indices:
-                if idx < 0 or idx >= len(servers):
-                    raise ValueError(f"Invalid server number: {idx + 1}")
-            
-            selected_servers = [servers[idx] for idx in indices]
-            break
-            
-        except ValueError as e:
-            console.print(f"[red]Invalid selection: {str(e)}. Please try again.[/red]")
-    
-    return selected_servers
+            if key == readchar.key.UP:
+                if current_index > 0:
+                    current_index -= 1
+                    # Check if we need to go to previous page
+                    if current_index < current_page * items_per_page and current_page > 0:
+                        current_page -= 1
+                else:
+                    # Wrap to last item
+                    current_index = len(servers) - 1
+                    current_page = get_total_pages() - 1
+                render_server_table()
+                
+            elif key == readchar.key.DOWN:
+                if current_index < len(servers) - 1:
+                    current_index += 1
+                    # Check if we need to go to next page
+                    if current_index >= (current_page + 1) * items_per_page:
+                        current_page += 1
+                else:
+                    # Wrap to first item
+                    current_index = 0
+                    current_page = 0
+                render_server_table()
+                
+            elif key == readchar.key.LEFT or key == readchar.key.PAGE_UP:
+                if current_page > 0:
+                    current_page -= 1
+                    current_index = current_page * items_per_page
+                    render_server_table()
+                    
+            elif key == readchar.key.RIGHT or key == readchar.key.PAGE_DOWN:
+                if current_page < get_total_pages() - 1:
+                    current_page += 1
+                    current_index = current_page * items_per_page
+                    render_server_table()
+                    
+            elif key == ' ':  # Space to toggle selection
+                if current_index in selected_indices:
+                    selected_indices.remove(current_index)
+                else:
+                    selected_indices.add(current_index)
+                render_server_table()
+                
+            elif key == readchar.key.ENTER or key == '\r' or key == '\n':
+                if selected_indices:
+                    return [servers[i] for i in sorted(selected_indices)]
+                else:
+                    # If nothing selected, select the current one
+                    return [servers[current_index]]
+                    
+            elif key == readchar.key.ESC or key == '\x1b':
+                return []
+                
+            elif key.lower() == 'q':
+                return []
+                
+            elif key.lower() == 'a':  # 'a' to select all
+                selected_indices = set(range(len(servers)))
+                render_server_table()
+                
+            elif key.lower() == 'n':  # 'n' to select none
+                selected_indices.clear()
+                render_server_table()
+                
+        except KeyboardInterrupt:
+            return []
+        except Exception:
+            # Handle any readchar exceptions gracefully
+            continue
 
 def create_mcp_config(selected_servers: List[Dict[str, Any]], agent: str) -> Dict[str, Any]:
     """Create MCP configuration from selected servers based on agent format."""
@@ -427,7 +649,7 @@ def download(
     console.print(f"\n[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
     
     # Select MCP servers
-    selected_servers = select_mcp_servers(servers)
+    selected_servers = select_mcp_servers(servers, agent)
     console.print(f"\n[bold green]Selected {len(selected_servers)} MCP servers[/bold green]")
     
     # Create configuration

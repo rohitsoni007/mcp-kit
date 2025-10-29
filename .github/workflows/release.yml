@@ -42,7 +42,13 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y jq
       
     - name: Generate MCP servers JSON
-      run: ./scripts/bash/create-mcp.sh
+      run: |
+        if [ -f "scripts/bash/create-mcp.sh" ]; then
+          ./scripts/bash/create-mcp.sh
+        else
+          echo "Bash script not found, this should not happen in CI"
+          exit 1
+        fi
       
     - name: Setup Python
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
@@ -87,6 +93,7 @@ jobs:
         
     - name: Get version from pyproject.toml
       id: version
+      if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
       run: |
         VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
         echo "version=$VERSION" >> $GITHUB_OUTPUT

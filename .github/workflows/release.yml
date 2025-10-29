@@ -44,31 +44,6 @@ jobs:
     - name: Generate MCP servers JSON
       run: ./scripts/bash/create-mcp.sh
       
-    - name: Check if mcp_servers.json changed
-      id: check_changes
-      run: |
-        if git diff --quiet dist/mcp_servers.json; then
-          echo "changed=false" >> $GITHUB_OUTPUT
-        else
-          echo "changed=true" >> $GITHUB_OUTPUT
-        fi
-      
-    - name: Commit and push changes (main branch only)
-      if: steps.check_changes.outputs.changed == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add dist/mcp_servers.json
-        git commit -m "Auto-update dist/mcp_servers.json [skip ci]"
-        git push
-      
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: mcp-servers-json
-        path: dist/mcp_servers.json
-        retention-days: 30
-        
     - name: Setup Python
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
       uses: actions/setup-python@v4

@@ -1,0 +1,107 @@
+name: MCP Servers Management
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a release'
+        type: boolean
+        default: false
+      tag:
+        description: 'Release tag (if creating release)'
+        required: false
+        default: 'v1.0.0'
+
+jobs:
+  generate-and-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Make script executable
+      run: chmod +x scripts/bash/create-mcp.sh
+      
+    - name: Install jq
+      run: sudo apt-get update && sudo apt-get install -y jq
+      
+    - name: Generate MCP servers JSON
+      run: ./scripts/bash/create-mcp.sh
+      
+    - name: Check if mcp_servers.json changed
+      id: check_changes
+      run: |
+        if git diff --quiet mcp_servers.json; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+      
+    - name: Commit and push changes (main branch only)
+      if: steps.check_changes.outputs.changed == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add mcp_servers.json
+        git commit -m "Auto-update mcp_servers.json [skip ci]"
+        git push
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-servers-json
+        path: mcp_servers.json
+        retention-days: 30
+        
+    - name: Get tag name for release
+      id: tag
+      if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+      
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+      uses: actions/create-release@v1
+      id: create_release
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        release_name: Release ${{ steps.tag.outputs.tag }}
+        body: |
+          ## MCP Servers Release ${{ steps.tag.outputs.tag }}
+          
+          This release contains the latest MCP servers configuration file.
+          
+          ### What's Included
+          - `mcp_servers.json` - Complete list of available MCP servers
+          - Base template servers from `templates/base_mcp.json`
+          - Dynamically fetched servers from the MCP registry
+          
+          ### Usage
+          Download the `mcp_servers.json` file and use it with your MCP-compatible tools and applications.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload Release Asset
+      if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./mcp_servers.json
+        asset_name: mcp_servers.json
+        asset_content_type: application/json
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

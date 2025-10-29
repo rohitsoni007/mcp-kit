@@ -154,19 +154,38 @@ cython_debug/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be added to the global gitignore or merged into this project gitignore.  For a PyCharm
-#  project, it is recommended to ignore the entire .idea directory.
+#  be added to the global gitignore or merged into this project gitignore.  For PyCharm
+#  Community Edition, use 'PyCharm CE' and for PyCharm Professional Edition, use 'PyCharm'.
 .idea/
 
 # VS Code
 .vscode/
 
-# macOS
+# Operating System Files
 .DS_Store
-
-# Windows
-Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 ehthumbs.db
-Desktop.ini#
- Generated MCP servers file
-mcp_servers.json
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Log files
+*.log
+
+# Test artifacts
+test-project/
+validation-test/
+*-test/
+test_*.json
+debug.log
+mcp-debug.log
+
+# MCP Kit specific
+.mcp_cache/
+mcp_*.json

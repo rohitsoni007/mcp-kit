@@ -9,6 +9,21 @@ $LIMIT = 50
 $API_URL = "${BASE_URL}/${DATE}/${API_VERSION}/${API_PATH}"
 $serverApiUrl = "${API_URL}?limit=${LIMIT}"
 $outputFile = "mcp_servers.json"
+$baseTemplateFile = "templates/base_mcp.json"
+
+# Load base template data
+Write-Host "Loading base template from $baseTemplateFile ..." -ForegroundColor Cyan
+$baseData = @()
+if (Test-Path $baseTemplateFile) {
+    try {
+        $baseData = Get-Content $baseTemplateFile -Raw | ConvertFrom-Json
+        Write-Host "✅ Loaded $($baseData.Count) base servers from template" -ForegroundColor Green
+    } catch {
+        Write-Host "⚠️ Failed to load base template: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "⚠️ Base template file not found: $baseTemplateFile" -ForegroundColor Yellow
+}
 
 Write-Host "Fetching MCP server data from $serverApiUrl ..." -ForegroundColor Cyan
 
@@ -44,7 +59,12 @@ if ($response.servers) {
 
 Write-Host "✅ Found $($servers.Count) servers. Processing..." -ForegroundColor Green
 
+# Start with base template data
 $formattedData = @()
+if ($baseData) {
+    $formattedData += $baseData
+    Write-Host "✅ Added $($baseData.Count) base servers to output" -ForegroundColor Green
+}
 
 foreach ($server in $servers) {
     $name = $server.name
@@ -149,13 +169,18 @@ foreach ($server in $servers) {
     $formattedData += $mcpObject
 }
 
-if ($formattedData.Count -eq 0) {
+$totalServers = $formattedData.Count
+$baseServersCount = if ($baseData) { $baseData.Count } else { 0 }
+$fetchedServersCount = $totalServers - $baseServersCount
+
+if ($totalServers -eq 0) {
     Write-Host "⚠️ No servers processed. Saving raw_response.json for inspection..." -ForegroundColor Yellow
     $response | ConvertTo-Json -Depth 10 | Out-File "raw_response.json" -Encoding UTF8
     exit 1
 }
 
 # Save final JSON
-$formattedData | ConvertTo-Json -Depth 8 | Out-File -FilePath $outputFile -Encoding UTF8
+$formattedData | ConvertTo-Json -Depth 8 -Compress | Out-File -FilePath $outputFile -Encoding UTF8
 
 Write-Host "✅ JSON file generated successfully: $outputFile" -ForegroundColor Green
+Write-Host "Total servers: $totalServers (Base: $baseServersCount, Fetched: $fetchedServersCount)" -ForegroundColor Cyan

@@ -11,6 +11,24 @@ LIMIT=50
 API_URL="${BASE_URL}/${DATE}/${API_VERSION}/${API_PATH}"
 SERVER_API_URL="${API_URL}?limit=${LIMIT}"
 OUTPUT_FILE="mcp_servers.json"
+BASE_TEMPLATE_FILE="templates/base_mcp.json"
+
+# Load base template data
+echo -e "\033[36mLoading base template from $BASE_TEMPLATE_FILE ...\033[0m"
+base_data="[]"
+base_servers_count=0
+
+if [ -f "$BASE_TEMPLATE_FILE" ]; then
+    if base_data=$(jq . "$BASE_TEMPLATE_FILE" 2>/dev/null); then
+        base_servers_count=$(echo "$base_data" | jq 'length')
+        echo -e "\033[32m✅ Loaded $base_servers_count base servers from template\033[0m"
+    else
+        echo -e "\033[33m⚠️ Failed to load base template: Invalid JSON\033[0m"
+        base_data="[]"
+    fi
+else
+    echo -e "\033[33m⚠️ Base template file not found: $BASE_TEMPLATE_FILE\033[0m"
+fi
 
 echo -e "\033[36mFetching MCP server data from $SERVER_API_URL ...\033[0m"
 
@@ -40,8 +58,11 @@ fi
 server_count=$(echo "$servers" | jq 'length')
 echo -e "\033[32m✅ Found $server_count servers. Processing...\033[0m"
 
-# Initialize output array
-formatted_data="[]"
+# Start with base template data
+formatted_data="$base_data"
+if [ "$base_servers_count" -gt 0 ]; then
+    echo -e "\033[32m✅ Added $base_servers_count base servers to output\033[0m"
+fi
 
 # Process each server
 for i in $(seq 0 $((server_count - 1))); do
@@ -154,13 +175,17 @@ for i in $(seq 0 $((server_count - 1))); do
     formatted_data=$(echo "$formatted_data" | jq ". += [$mcp_object]")
 done
 
-if [ "$(echo "$formatted_data" | jq 'length')" -eq 0 ]; then
+total_servers=$(echo "$formatted_data" | jq 'length')
+fetched_servers_count=$((total_servers - base_servers_count))
+
+if [ "$total_servers" -eq 0 ]; then
     echo -e "\033[33m⚠️ No servers processed. Saving raw_response.json for inspection...\033[0m"
     echo "$response" | jq . > raw_response.json
     exit 1
 fi
 
-# Save final JSON
-echo "$formatted_data" | jq . > "$OUTPUT_FILE"
+# Save final JSON (compact format)
+echo "$formatted_data" | jq -c . > "$OUTPUT_FILE"
 
 echo -e "\033[32m✅ JSON file generated successfully: $OUTPUT_FILE\033[0m"
+echo -e "\033[36mTotal servers: $total_servers (Base: $base_servers_count, Fetched: $fetched_servers_count)\033[0m"

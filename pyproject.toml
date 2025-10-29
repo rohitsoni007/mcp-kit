@@ -5,14 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "your-package-name"
 version = "0.1.0"
-description = "A Python package"
+description = "A command-line interface tool for MCP project initialization"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
-authors = [
-    {name = "Your Name", email = "your.email@example.com"}
-]
-keywords = ["python", "package"]
+license = { text = "MIT" }
+authors = [{ name = "Rohit Soni", email = "your.email@example.com" }]
+keywords = ["mcp", "model-context-protocol", "cli", "project-initialization", "ai-tools"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -26,9 +24,12 @@ classifiers = [
 ]
 
 dependencies = [
-    # Add your runtime dependencies here
-    # "requests>=2.25.0",
-    # "click>=8.0.0",
+    "typer",
+    "rich",
+    "httpx[socks]",
+    "platformdirs",
+    "readchar",
+    "truststore>=0.10.4",
 ]
 
 [project.optional-dependencies]
@@ -40,18 +41,18 @@ dev = [
     "flake8>=4.0.0",
     "mypy>=0.950",
 ]
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-]
+test = ["pytest>=7.0.0", "pytest-cov>=4.0.0"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/your-package-name"
-Repository = "https://github.com/yourusername/your-package-name"
-Issues = "https://github.com/yourusername/your-package-name/issues"
+Homepage = "https://github.com/rohitsoni007/mcp-kit"
+Repository = "https://github.com/rohitsoni007/mcp-kit"
+Issues = "https://github.com/rohitsoni007/mcp-kit/issues"
+Documentation = "https://github.com/rohitsoni007/mcp-kit#readme"
+Changelog = "https://github.com/rohitsoni007/mcp-kit/blob/main/CHANGELOG.md"
+
 
 [project.scripts]
-# your-cli-command = "your_package.cli:main"
+mcp = "mcp_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

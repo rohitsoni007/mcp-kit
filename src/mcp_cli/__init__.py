@@ -1,8 +1,8 @@
-"""Your Package - A Python package."""
+"""MCP Kit - A command-line tool for initializing MCP projects."""
 
 __version__ = "0.1.0"
-__author__ = "Your Name"
-__email__ = "your.email@example.com"
+__author__ = "MCP Kit Team"
+__description__ = "A command-line interface tool for MCP project initialization"
 
 # Import main classes/functions for easy access
 # from .core import YourMainClass

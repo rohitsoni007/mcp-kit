@@ -125,8 +125,13 @@ def show_banner():
     console.print(Align.center(Text(TAGLINE, style="italic bright_yellow")))
     console.print()
 
-def get_mcp_config_path() -> Path:
-    """Get the MCP configuration path based on the operating system."""
+def get_mcp_config_path(agent: str = "copilot") -> Path:
+    """Get the MCP configuration path based on the agent and operating system."""
+    if agent == "continue": 
+        # Continue uses ~/.continue/mcpServers/mcp.json
+        return Path.home() / ".continue" / "mcpServers" / "mcp.json"
+    
+    # Default to Copilot/Kiro configuration path
     system = platform.system().lower()
     
     if system == "windows":
@@ -575,7 +580,7 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
                 console.print(f"[yellow]Found existing configuration, merging entries...[/yellow]")
             except Exception as e:
                 console.print(f"[yellow]Warning: Could not read existing config: {e}[/yellow]")
-                if not Confirm.ask(f"Continue and overwrite the file?"):
+                if not Confirm.ask(f"Continue and merge the file?"):
                     return False
         
         # Merge configurations based on agent format
@@ -655,8 +660,8 @@ def download(
     # Create configuration
     config = create_mcp_config(selected_servers, agent)
     
-    # Get configuration path
-    config_path = get_mcp_config_path()
+    # Get configuration path based on selected agent
+    config_path = get_mcp_config_path(agent)
     
     # Save configuration
     if save_mcp_config(config, config_path, agent):

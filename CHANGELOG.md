@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Enhance UI with improved banner 
 - keyboard navigation for agent/server selection
+- Continue agent support for MCP server configuration
 
 
 ## [0.0.4] - 2025-10-29

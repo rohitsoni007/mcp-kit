@@ -6,7 +6,7 @@ Thank you for your interest in contributing to MCP Kit! This document provides g
 
 ### Prerequisites
 
-- Python 3.11 or higher
+- Python 3.11 +
 - [uv](https://docs.astral.sh/uv/) package manager
 - Git
 

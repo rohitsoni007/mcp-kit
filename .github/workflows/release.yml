@@ -36,7 +36,10 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
       
     - name: Make script executable
-      run: chmod +x scripts/bash/create-mcp.sh
+      run: |
+        chmod +x scripts/bash/create-mcp.sh
+        echo "Script permissions:"
+        ls -la scripts/bash/create-mcp.sh
       
     - name: Install jq
       run: sudo apt-get update && sudo apt-get install -y jq
@@ -44,15 +47,43 @@ jobs:
     - name: Generate MCP servers JSON
       run: |
         if [ -f "scripts/bash/create-mcp.sh" ]; then
+          echo "Running MCP servers generation script..."
           ./scripts/bash/create-mcp.sh
+          
+          # Verify the output was created
+          if [ -f "dist/mcp_servers.json" ]; then
+            echo "✅ MCP servers JSON generated successfully"
+            echo "File size: $(wc -c < dist/mcp_servers.json) bytes"
+            echo "Number of servers: $(jq 'length' dist/mcp_servers.json)"
+          else
+            echo "❌ Failed to generate MCP servers JSON"
+            exit 1
+          fi
         else
           echo "Bash script not found, this should not happen in CI"
           exit 1
         fi
       
+    - name: Workflow Status Check
+      run: |
+        echo "🔍 Checking workflow conditions..."
+        echo "Event name: ${{ github.event_name }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "Create release input: ${{ github.event.inputs.create_release }}"
+        
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "✅ Tag push detected - release steps will run"
+        elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.create_release }}" == "true" ]]; then
+          echo "✅ Manual release requested - release steps will run"
+        else
+          echo "ℹ️ Regular push/PR - only generation steps will run"
+          echo "   To create a release:"
+          echo "   1. Use 'Run workflow' button with 'Create release' checked, OR"
+          echo "   2. Push a tag (e.g., git tag v1.0.0 && git push origin v1.0.0)"
+        fi
+      
     - name: Setup Python
-      if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         
@@ -67,26 +98,17 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        # Create .bumpversion.cfg if it doesn't exist
+        # Verify .bumpversion.cfg exists and is valid
         if [ ! -f .bumpversion.cfg ]; then
-          cat > .bumpversion.cfg << EOF
-        [bumpversion]
-        current_version = $(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-        commit = True
-        tag = True
-        
-        [bumpversion:file:pyproject.toml]
-        search = version = "{current_version}"
-        replace = version = "{new_version}"
-        
-        [bumpversion:file:src/mcp_cli/__init__.py]
-        search = __version__ = "{current_version}"
-        replace = __version__ = "{new_version}"
-        EOF
+          echo "Error: .bumpversion.cfg not found"
+          exit 1
         fi
         
+        # Show current version
+        echo "Current version: $(grep '^current_version = ' .bumpversion.cfg | cut -d' ' -f3)"
+        
         # Bump version
-        bump2version ${{ github.event.inputs.version_bump }}
+        bump2version ${{ github.event.inputs.version_bump }} --verbose
         
         # Push changes
         git push origin main --tags
@@ -95,7 +117,51 @@ jobs:
       id: version
       if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
       run: |
-        VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        # Try multiple methods to extract version
+        VERSION=""
+        
+        # Method 1: Try with Python tomllib (Python 3.11+)
+        if [ -z "$VERSION" ]; then
+          VERSION=$(python3 -c "
+          try:
+              import tomllib
+              with open('pyproject.toml', 'rb') as f:
+                  data = tomllib.load(f)
+              print(data['project']['version'])
+          except Exception:
+              pass
+          " 2>/dev/null || echo "")
+        fi
+        
+        # Method 2: Try with toml library
+        if [ -z "$VERSION" ]; then
+          pip install toml >/dev/null 2>&1 || true
+          VERSION=$(python3 -c "
+          try:
+              import toml
+              with open('pyproject.toml', 'r') as f:
+                  data = toml.load(f)
+              print(data['project']['version'])
+          except Exception:
+              pass
+          " 2>/dev/null || echo "")
+        fi
+        
+        # Method 3: Fallback to grep/sed
+        if [ -z "$VERSION" ]; then
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/' || echo "")
+        fi
+        
+        # Method 4: Try from bumpversion.cfg
+        if [ -z "$VERSION" ]; then
+          VERSION=$(grep '^current_version = ' .bumpversion.cfg | cut -d' ' -f3 || echo "")
+        fi
+        
+        echo "Extracted version: $VERSION"
+        if [ -z "$VERSION" ]; then
+          echo "Error: Could not extract version from any source"
+          exit 1
+        fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "tag=v$VERSION" >> $GITHUB_OUTPUT
         
@@ -112,13 +178,43 @@ jobs:
     - name: Create distribution zip
       if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
       run: |
+        # Ensure dist directory exists and has content
+        if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+          echo "Error: dist directory is empty or doesn't exist"
+          exit 1
+        fi
+        
+        echo "Contents of dist directory:"
+        ls -la dist/
+        
         cd dist
         zip -r ../mcp-servers-${{ steps.tag.outputs.tag }}.zip .
         cd ..
         
+        echo "Created zip file:"
+        ls -la mcp-servers-${{ steps.tag.outputs.tag }}.zip
+        
     - name: Create Release with GitHub CLI
       if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
       run: |
+        # Debug information
+        echo "Creating release with tag: ${{ steps.tag.outputs.tag }}"
+        echo "Files to upload:"
+        ls -la ./dist/mcp_servers.json || echo "mcp_servers.json not found"
+        ls -la ./mcp-servers-${{ steps.tag.outputs.tag }}.zip || echo "zip file not found"
+        
+        # Verify files exist before creating release
+        if [ ! -f "./dist/mcp_servers.json" ]; then
+          echo "Error: mcp_servers.json not found"
+          exit 1
+        fi
+        
+        if [ ! -f "./mcp-servers-${{ steps.tag.outputs.tag }}.zip" ]; then
+          echo "Error: zip file not found"
+          exit 1
+        fi
+        
+        # Create release
         gh release create ${{ steps.tag.outputs.tag }} \
           --title "Release ${{ steps.tag.outputs.tag }}" \
           --notes "## MCP Servers Release ${{ steps.tag.outputs.tag }}

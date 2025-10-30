@@ -69,6 +69,8 @@ uv sync
 
 ### Usage Examples
 
+#### Global Configuration (User-level)
+
 ```bash
 # Interactive Model Context Protocol server selection (choose from available AI agents)
 mcp download
@@ -89,17 +91,39 @@ mcp download --agent cursor
 mcp download --agent qoder
 
 # Specify MCP server version and AI agent
-mcp download --version v0.1.0 --agent copilot
+mcp download --version v0.0.5 --agent kiro
 
 # Short form CLI command for quick setup
-mcp download -v v0.2.0 -a copilot
-
+mcp download -v v0.0.5 -a cursor
 ```
 
-### Initialize New Project With MCP's & Rules (🚧 Not Implemented yet)
+#### Project-specific Configuration
 
 ```bash
-mcp init <project_name>
+# Initialize MCP in current directory
+mcp init .
+
+# Initialize MCP in a new project directory
+mcp init my-project
+
+# Initialize with specific agent and version
+mcp init my-project --agent kiro --version v0.0.5
+
+# Short form for project initialization
+mcp init . -a cursor -v v0.0.5
+```
+
+### Project Structure After Initialization
+
+When using `mcp init`, the configuration files are created in project-specific locations:
+
+```
+my-project/
+├── .vscode/mcp.json          # For GitHub Copilot/VS Code
+├── .continue/mcpServers/mcp.json  # For Continue
+├── .kiro/settings/mcp.json   # For Kiro
+├── .cursor/mcp.json          # For Cursor
+└── .qoder/mcp.json           # For Qoder
 ```
 
 ## Development

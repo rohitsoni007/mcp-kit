@@ -59,13 +59,13 @@ uv sync
 
 ## 🤖 Supported AI Agents
 
-| Agent | CLI ID | Support | Notes |
-|-------|--------|---------|-------|
-| **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |  |
-| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |  |
-| **[Kiro](https://kiro.dev)** | `kiro` | ✅ |  |
-| **[Cursor](https://cursor.sh)** | `cursor` | ✅ |  |
-| **[Qoder](https://qoder.com)** | `qoder` | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
+| Agent | Support | Notes |
+|-------|---------|-------|
+| **[GitHub Copilot](https://code.visualstudio.com)** | ✅ |  |
+| **[Continue](https://github.com/continuedev/continue)** | ✅ |  |
+| **[Kiro](https://kiro.dev)** | ✅ |  |
+| **[Cursor](https://cursor.sh)** | ✅ |  |
+| **[Qoder](https://qoder.com)** | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 
 ## 🔧 MCP CLI Reference
 

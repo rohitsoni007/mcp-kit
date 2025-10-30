@@ -91,7 +91,7 @@ BANNER = r"""
 ╚═╝     ╚═╝ ╚═════╝╚═╝          ╚═════╝╚══════╝╚═╝
 """
 
-TAGLINE = "MCP Kit - SETUP MCP"
+TAGLINE = "Setup high-quality MCP servers faster"
 
 
     

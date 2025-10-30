@@ -98,6 +98,13 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
+        # Commit any generated files first to clean the working directory
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Committing generated files..."
+          git add .
+          git commit -m "chore: update generated MCP servers file"
+        fi
+        
         # Verify .bumpversion.cfg exists and is valid
         if [ ! -f .bumpversion.cfg ]; then
           echo "Error: .bumpversion.cfg not found"

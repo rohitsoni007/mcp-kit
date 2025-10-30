@@ -65,9 +65,9 @@ uv sync
 | **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |  |
 | **[Kiro](https://kiro.dev)** | `kiro` | ✅ |  |
 | **[Cursor](https://cursor.sh)** | `cursor` | ✅ |  |
-| **[Qoder](https://qoder.com)** | `qoder` | ⚠️ | support for global and Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
+| **[Qoder](https://qoder.com)** | `qoder` | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 
-## � MCP CLI Reference
+## 🔧 MCP CLI Reference
 
 The `mcp` command supports the following options:
 

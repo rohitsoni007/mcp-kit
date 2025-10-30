@@ -59,15 +59,17 @@ uv sync
 
 ## 🤖 Supported AI Agents
 
-| Agent | CLI ID | Support |
-|-------|--------|---------|
-| **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |
-| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |
-| **[Kiro](https://kiro.dev)** | `kiro` | ✅ |
-| **[Cursor](https://cursor.sh)** | `cursor` | ✅ |
-| **[Qoder](https://qoder.com)** | `qoder` | ✅ |
+| Agent | CLI ID | Support | Notes |
+|-------|--------|---------|-------|
+| **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |  |
+| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |  |
+| **[Kiro](https://kiro.dev)** | `kiro` | ✅ |  |
+| **[Cursor](https://cursor.sh)** | `cursor` | ✅ |  |
+| **[Qoder](https://qoder.com)** | `qoder` | ⚠️ | support for global and Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 
 ### 🔧 Usage Examples for setup mcp in global paths of ai agents
+
+#### Global Configuration (User-level)
 
 ```bash
 # Interactive Model Context Protocol server selection (choose from available AI agents)
@@ -89,18 +91,28 @@ mcp download --agent cursor
 mcp download --agent qoder
 
 # Specify MCP server version and AI agent
-mcp download --version v0.1.0 --agent copilot
+mcp download --version v0.0.5 --agent kiro
 
 # Short form CLI command for quick setup
-mcp download -v v0.2.0 -a copilot
-
+mcp download -v v0.0.5 -a cursor
 ```
 
-### 🎯 Initialize New Project With MCP's & Rules (🚧 Not Implemented yet)
+#### Project-specific Configuration
 
 ```bash
-mcp init <project_name>
+# Initialize MCP in current directory
+mcp init .
+
+# Initialize MCP in a new project directory
+mcp init my-project
+
+# Initialize with specific agent and version
+mcp init my-project --agent kiro --version v0.0.5
+
+# Short form for project initialization
+mcp init . -a cursor -v v0.0.5
 ```
+
 
 ## Development
 

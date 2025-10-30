@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kiro agent support for MCP server configuration
 - Cursor agent support for MCP server configuration
 - Qoder agent support for MCP server configuration
+- Support for project-level MCP configurations
 
 
 ## [0.0.5] - 2025-10-29

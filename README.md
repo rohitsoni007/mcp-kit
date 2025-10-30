@@ -93,35 +93,6 @@ The `mcp` command supports the following options:
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, or `qoder`  |
 | `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
 
-### Examples
-
-```bash
-# Interactive MCP server selection
-mcp download
-
-# Download and configure for specific AI agent
-mcp download --agent kiro
-mcp download -a cursor
-
-# Download specific version for an agent
-mcp download --version v0.0.5 --agent copilot
-mcp download -v v0.0.5 -a continue
-
-# Initialize MCP in current directory
-mcp init .
-
-# Initialize MCP in new project directory
-mcp init my-project
-
-# Initialize with specific agent
-mcp init . --agent kiro
-mcp init my-project -a cursor
-
-# Initialize with specific agent and version
-mcp init . --agent copilot --version v0.0.5
-mcp init my-project -a continue -v v0.0.5
-```
-
 ### 🔧 Usage Examples
 
 #### Global Configuration (User-level)

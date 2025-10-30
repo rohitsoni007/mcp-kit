@@ -67,7 +67,62 @@ uv sync
 | **[Cursor](https://cursor.sh)** | `cursor` | ✅ |  |
 | **[Qoder](https://qoder.com)** | `qoder` | ⚠️ | support for global and Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 
-### 🔧 Usage Examples for setup mcp in global paths of ai agents
+## � MCP CLI Reference
+
+The `mcp` command supports the following options:
+
+### Commands
+
+| Command     | Description                                                    |
+|-------------|----------------------------------------------------------------|
+| `download`  | Download and configure MCP servers for AI agents (global configuration) |
+| `init`      | Initialize MCP configuration in a project directory (project-specific configuration) |
+
+### `mcp download` Arguments & Options
+
+| Argument/Option | Type     | Description                                                                  |
+|-----------------|----------|------------------------------------------------------------------------------|
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, or `qoder`  |
+| `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
+
+### `mcp init` Arguments & Options
+
+| Argument/Option | Type     | Description                                                                  |
+|-----------------|----------|------------------------------------------------------------------------------|
+| `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory)   |
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, or `qoder`  |
+| `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
+
+### Examples
+
+```bash
+# Interactive MCP server selection
+mcp download
+
+# Download and configure for specific AI agent
+mcp download --agent kiro
+mcp download -a cursor
+
+# Download specific version for an agent
+mcp download --version v0.0.5 --agent copilot
+mcp download -v v0.0.5 -a continue
+
+# Initialize MCP in current directory
+mcp init .
+
+# Initialize MCP in new project directory
+mcp init my-project
+
+# Initialize with specific agent
+mcp init . --agent kiro
+mcp init my-project -a cursor
+
+# Initialize with specific agent and version
+mcp init . --agent copilot --version v0.0.5
+mcp init my-project -a continue -v v0.0.5
+```
+
+### 🔧 Usage Examples
 
 #### Global Configuration (User-level)
 
@@ -76,19 +131,19 @@ uv sync
 mcp download
 
 # Configure MCP for GitHub Copilot AI agent
-mcp download --agent copilot
+mcp download -a copilot
 
 # Configure model-context-protocol for Continue AI
-mcp download --agent continue
+mcp download -a continue
 
 # Configure MCP for Kiro AI agent
-mcp download --agent kiro
+mcp download -a kiro
 
 # Configure MCP for Cursor AI agent
-mcp download --agent cursor
+mcp download -a cursor
 
 # Configure MCP for Qoder AI agent
-mcp download --agent qoder
+mcp download -a qoder
 
 # Specify MCP server version and AI agent
 mcp download --version v0.0.5 --agent kiro
@@ -106,11 +161,19 @@ mcp init .
 # Initialize MCP in a new project directory
 mcp init my-project
 
+# Initialize MCP for specific agent in new project directory
+mcp init my-project -a copilot
+mcp init my-project -a continue
+mcp init my-project -a kiro
+mcp init my-project -a cursor
+mcp init my-project -a qoder
+
 # Initialize with specific agent and version
 mcp init my-project --agent kiro --version v0.0.5
 
 # Short form for project initialization
 mcp init . -a cursor -v v0.0.5
+
 ```
 
 
@@ -123,8 +186,7 @@ mcp-kit/
 ├── src/mcp_cli/           # Main CLI package
 │   ├── __init__.py        # Core CLI functionality
 ├── templates/             # Configuration templates
-├── scripts/               # Build and deployment scripts
-└── tests/                 # Test files
+└── scripts/               # Build and deployment scripts
 ```
 
 ## 🔧 Requirements

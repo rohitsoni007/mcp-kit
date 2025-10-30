@@ -328,7 +328,7 @@ def download_mcp_servers(version: str = None) -> Optional[List[Dict[str, Any]]]:
         console.print("[yellow]Falling back to local configuration...[/yellow]")
         return load_local_mcp_servers()
 
-def select_agent() -> Optional[str]:
+def select_agent(project_info: Optional[Dict[str, str]] = None) -> Optional[str]:
     """Interactive agent selection with keyboard navigation using table format."""
     agents = list(AGENT_CONFIG.keys())
     selected_index = 0
@@ -343,6 +343,26 @@ def select_agent() -> Optional[str]:
         
         # Show banner
         show_banner()
+        
+        # Show project info if provided
+        if project_info:
+            setup_table = Table(show_header=False, box=None, padding=(0, 1))
+            setup_table.add_column("Label", style="cyan", width=18)
+            setup_table.add_column("Path", style="white")
+            
+            setup_table.add_row("Project:", project_info["project_name"])
+            setup_table.add_row("Working Path:", project_info["working_directory"])
+            setup_table.add_row("Target Path:", project_info["target_directory"])
+            
+            setup_panel = Panel(
+                setup_table,
+                title="[bold cyan]Project Setup[/bold cyan]",
+                border_style="cyan",
+                padding=(1, 2)
+            )
+            
+            console.print(setup_panel)
+            console.print()
         
         # Create table
         table = Table(show_header=False, box=None, padding=(0, 1))
@@ -410,22 +430,58 @@ def select_agent() -> Optional[str]:
             # Handle any readchar exceptions gracefully
             continue
 
-def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[str, Any]]:
-    """Interactive MCP server selection with keyboard navigation, table format, and pagination."""
+def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+    """Interactive MCP server selection with keyboard navigation, table format, pagination, and search filtering."""
     selected_indices = set()
     current_index = 0
     current_page = 0
     items_per_page = 10  # Show 10 servers per page
+    search_query = ""
+    filtered_servers = servers.copy()
+    original_to_filtered_mapping = {i: i for i in range(len(servers))}  # Maps original indices to filtered indices
+    
+    def filter_servers():
+        """Filter servers based on search query."""
+        nonlocal filtered_servers, original_to_filtered_mapping, current_index, current_page
+        
+        if not search_query.strip():
+            filtered_servers = servers.copy()
+            original_to_filtered_mapping = {i: i for i in range(len(servers))}
+        else:
+            query_lower = search_query.lower()
+            filtered_servers = []
+            original_to_filtered_mapping = {}
+            
+            for i, server in enumerate(servers):
+                # Search in name and description
+                name_match = query_lower in server['name'].lower()
+                desc_match = query_lower in server['description'].lower()
+                
+                if name_match or desc_match:
+                    filtered_index = len(filtered_servers)
+                    original_to_filtered_mapping[i] = filtered_index
+                    filtered_servers.append(server)
+        
+        # Reset pagination and selection after filtering
+        current_index = 0
+        current_page = 0
     
     def get_page_items():
         """Get items for the current page."""
         start_idx = current_page * items_per_page
-        end_idx = min(start_idx + items_per_page, len(servers))
-        return servers[start_idx:end_idx], start_idx, end_idx
+        end_idx = min(start_idx + items_per_page, len(filtered_servers))
+        return filtered_servers[start_idx:end_idx], start_idx, end_idx
     
     def get_total_pages():
         """Calculate total number of pages."""
-        return (len(servers) + items_per_page - 1) // items_per_page
+        return (len(filtered_servers) + items_per_page - 1) // items_per_page
+    
+    def get_original_index(filtered_index):
+        """Get the original server index from filtered index."""
+        for orig_idx, filt_idx in original_to_filtered_mapping.items():
+            if filt_idx == filtered_index:
+                return orig_idx
+        return filtered_index
     
     def render_server_table():
         """Render the MCP server selection interface using a table with pagination."""
@@ -438,9 +494,56 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
         # Show banner
         show_banner()
         
-        # Show selected agent
-        agent_info = f"Selected Agent: {agent} ({AGENT_CONFIG[agent]['name']})"
-        console.print(Align.center(Text(agent_info, style="bold green")))
+        # Show project info if provided
+        if project_info:
+            setup_table = Table(show_header=False, box=None, padding=(0, 1))
+            setup_table.add_column("Label", style="cyan", width=18)
+            setup_table.add_column("Path", style="white")
+            
+            setup_table.add_row("Project:", project_info["project_name"])
+            setup_table.add_row("Working Path:", project_info["working_directory"])
+            setup_table.add_row("Target Path:", project_info["target_directory"])
+            
+            setup_panel = Panel(
+                setup_table,
+                title="[bold cyan]Project Setup[/bold cyan]",
+                border_style="cyan",
+                padding=(1, 2)
+            )
+            
+            console.print(setup_panel)
+            console.print()
+        
+        # Show selected agent with border
+        agent_content = f"🤖 {agent} ({AGENT_CONFIG[agent]['name']})"
+        agent_panel = Panel(
+            Align.center(Text(agent_content, style="bold green")),
+            title="[bold cyan]Selected Agent[/bold cyan]",
+            border_style="green",
+            padding=(0, 1),
+            height=3
+        )
+        console.print(agent_panel)
+        console.print()
+        
+        # Show search box with border
+        if search_query:
+            search_content = f"🔍 {search_query}"
+            search_style = "bold yellow"
+            border_style = "yellow"
+        else:
+            search_content = "🔍 (type to filter servers)"
+            search_style = "dim"
+            border_style = "dim"
+        
+        search_panel = Panel(
+            Align.center(Text(search_content, style=search_style)),
+            title="[bold cyan]Search[/bold cyan]" if search_query else "[dim]Search[/dim]",
+            border_style=border_style,
+            padding=(0, 1),
+            height=3
+        )
+        console.print(search_panel)
         console.print()
         
         # Get current page items
@@ -456,9 +559,10 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
         
         # Add rows to table for current page
         for i, server in enumerate(page_items):
-            global_index = start_idx + i
+            filtered_index = start_idx + i
+            original_index = get_original_index(filtered_index)
             
-            if global_index == current_index:
+            if filtered_index == current_index:
                 # Highlighted selection
                 selector = "▶"
                 checkbox_style = "bold cyan"
@@ -467,7 +571,7 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
             else:
                 # Normal item
                 selector = " "
-                if global_index in selected_indices:
+                if original_index in selected_indices:
                     checkbox_style = "bright_green"
                     server_style = "bright_green"
                     desc_style = "green"
@@ -476,7 +580,7 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
                     server_style = "white"
                     desc_style = "dim"
             
-            checkbox = "☑" if global_index in selected_indices else "☐"
+            checkbox = "☑" if original_index in selected_indices else "☐"
             
             # Truncate description if too long
             description = server['description']
@@ -495,7 +599,10 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
         status_info = f"Selected: {selected_count} server{'s' if selected_count != 1 else ''}"
         
         if total_pages > 1:
-            status_info += f" | Page {current_page + 1} of {total_pages} | Showing {start_idx + 1}-{end_idx} of {len(servers)}"
+            status_info += f" | Page {current_page + 1} of {total_pages} | Showing {start_idx + 1}-{end_idx} of {len(filtered_servers)}"
+        
+        if search_query and len(filtered_servers) != len(servers):
+            status_info += f" | Filtered: {len(filtered_servers)}/{len(servers)}"
         
         # Wrap table in a panel with border
         panel = Panel(
@@ -512,12 +619,13 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
         # Help text
         help_lines = [
             "Use ↑/↓ to navigate, Space to toggle, Enter to confirm, Esc to cancel",
+            "Type to search/filter servers, Backspace to delete search, Ctrl+C to clear search"
         ]
         
         if total_pages > 1:
             help_lines.append("Use ←/→ or PgUp/PgDn to change pages")
         
-        help_lines.append("A=select all, N=select none")
+        help_lines.append("Ctrl+A=select all, Ctrl+N=select none")
         
         for line in help_lines:
             console.print(Text(line, style="dim"))
@@ -538,12 +646,12 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
                         current_page -= 1
                 else:
                     # Wrap to last item
-                    current_index = len(servers) - 1
+                    current_index = len(filtered_servers) - 1
                     current_page = get_total_pages() - 1
                 render_server_table()
                 
             elif key == readchar.key.DOWN:
-                if current_index < len(servers) - 1:
+                if current_index < len(filtered_servers) - 1:
                     current_index += 1
                     # Check if we need to go to next page
                     if current_index >= (current_page + 1) * items_per_page:
@@ -567,10 +675,11 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
                     render_server_table()
                     
             elif key == ' ':  # Space to toggle selection
-                if current_index in selected_indices:
-                    selected_indices.remove(current_index)
+                original_index = get_original_index(current_index)
+                if original_index in selected_indices:
+                    selected_indices.remove(original_index)
                 else:
-                    selected_indices.add(current_index)
+                    selected_indices.add(original_index)
                 render_server_table()
                 
             elif key == readchar.key.ENTER or key == '\r' or key == '\n':
@@ -578,7 +687,8 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
                     return [servers[i] for i in sorted(selected_indices)]
                 else:
                     # If nothing selected, select the current one
-                    return [servers[current_index]]
+                    original_index = get_original_index(current_index)
+                    return [servers[original_index]]
                     
             elif key == readchar.key.ESC or key == '\x1b':
                 return []
@@ -586,12 +696,33 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str) -> List[Dict[s
             elif key.lower() == 'q':
                 return []
                 
-            elif key.lower() == 'a':  # 'a' to select all
-                selected_indices = set(range(len(servers)))
+            elif key == '\x01':  # Ctrl+A to select all (filtered servers)
+                for filtered_idx in range(len(filtered_servers)):
+                    original_idx = get_original_index(filtered_idx)
+                    selected_indices.add(original_idx)
                 render_server_table()
                 
-            elif key.lower() == 'n':  # 'n' to select none
+            elif key == '\x0e':  # Ctrl+N to select none
                 selected_indices.clear()
+                render_server_table()
+                
+            elif key == readchar.key.BACKSPACE or key == '\b' or key == '\x7f':  # Backspace
+                if search_query:
+                    search_query = search_query[:-1]
+                    filter_servers()
+                    render_server_table()
+                    
+            elif key == '\x03':  # Ctrl+C to clear search
+                if search_query:
+                    search_query = ""
+                    filter_servers()
+                    render_server_table()
+                else:
+                    return []  # Exit if no search query
+                    
+            elif len(key) == 1 and key.isprintable():  # Regular character input for search
+                search_query += key
+                filter_servers()
                 render_server_table()
                 
         except KeyboardInterrupt:
@@ -736,17 +867,53 @@ def init(
     show_banner()
     
     # Determine project path
+    working_directory = Path.cwd()
     if project_name == ".":
-        project_path = Path.cwd()
-        console.print(f"[bold green]Initializing MCP in current directory: {project_path}[/bold green]")
+        project_path = working_directory
+        target_directory = working_directory
+        directory_created = False
     else:
-        project_path = Path.cwd() / project_name
-        console.print(f"[bold green]Initializing MCP project: {project_name}[/bold green]")
+        project_path = working_directory / project_name
+        target_directory = project_path
+        
+        # Check if directory exists before creating
+        directory_existed = project_path.exists()
         
         # Create project directory if it doesn't exist
-        if not project_path.exists():
+        if not directory_existed:
             project_path.mkdir(parents=True, exist_ok=True)
-            console.print(f"[green]✓ Created project directory: {project_path}[/green]")
+            directory_created = True
+        else:
+            directory_created = False
+    
+    # Prepare project info for display
+    project_info = {
+        "project_name": project_name,
+        "working_directory": str(working_directory),
+        "target_directory": str(target_directory)
+    }
+    
+    # Display project setup information
+    setup_table = Table(show_header=False, box=None, padding=(0, 1))
+    setup_table.add_column("Label", style="cyan", width=18)
+    setup_table.add_column("Path", style="white")
+    
+    setup_table.add_row("Project:", project_name)
+    setup_table.add_row("Working Path:", str(working_directory))
+    setup_table.add_row("Target Path:", str(target_directory))
+    
+    setup_panel = Panel(
+        setup_table,
+        title="[bold cyan]Project Setup[/bold cyan]",
+        border_style="cyan",
+        padding=(1, 2)
+    )
+    
+    console.print(setup_panel)
+    console.print()
+    
+    if project_name != "." and directory_created:
+        console.print(f"[green]✓ Created project directory: {project_path}[/green]")
     
     # Download MCP servers
     servers = download_mcp_servers(version)
@@ -757,7 +924,7 @@ def init(
     
     # Select agent if not provided
     if not agent:
-        agent = select_agent()
+        agent = select_agent(project_info)
         if not agent:
             console.print("[red]No agent selected. Exiting.[/red]")
             raise typer.Exit(1)
@@ -775,7 +942,7 @@ def init(
         console.print()
     
     # Select MCP servers
-    selected_servers = select_mcp_servers(servers, agent)
+    selected_servers = select_mcp_servers(servers, agent, project_info)
     if not selected_servers:
         console.print("[yellow]No servers selected. Exiting.[/yellow]")
         raise typer.Exit(0)

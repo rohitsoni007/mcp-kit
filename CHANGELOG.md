@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2025-10-31
+
+### Added
+- Enhanced MCP server selection interface with popularity metrics
+- Added stargazer_count (GitHub stars) column with star icons (☆)
+- Added "By" column showing organization/author information
+- Enhanced search/filter functionality to include organization/author field
+- Smart truncation for long organization names
+- Servers now sorted by popularity (stargazer_count) by default
+
 ## [0.0.5] - 2025-10-30
 
 ### Added
@@ -14,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cursor agent support for MCP server configuration
 - Qoder agent support for MCP server configuration
 - Support for project-level MCP configurations
-- Filter MCP Server by name
+- Filter MCP Server by name and description
 
 
 ## [0.0.5] - 2025-10-29

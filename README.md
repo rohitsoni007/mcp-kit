@@ -15,7 +15,7 @@
 
 ---
 
-## Overview
+## 🤔 Overview
 
 MCP Kit is a powerful Python CLI dev-tools package that provides an interactive way to discover, download, and configure Model Context Protocol (MCP) servers from the official [Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers) and [Github MCP Registry](https://github.com/mcp) ecosystem. This AI-powered tool automatically configures model-context-protocol servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
 
@@ -29,7 +29,7 @@ MCP Kit is a powerful Python CLI dev-tools package that provides an interactive 
 - 📁 Automatic AI agent configuration path detection
 - 🛠️ CLI-based workflow for seamless developer experience
 
-## Installation
+## ⚡ Installation
 
 ### Using uv (recommended)
 
@@ -57,7 +57,7 @@ uv sync
 ```
 
 
-## Supported AI Agents
+## 🤖 Supported AI Agents
 
 | Agent | CLI ID | Support |
 |-------|--------|---------|
@@ -67,7 +67,7 @@ uv sync
 | **[Cursor](https://cursor.sh)** | `cursor` | ✅ |
 | **[Qoder](https://qoder.com)** | `qoder` | ✅ |
 
-### Usage Examples
+### 🔧 Usage Examples for setup mcp in global paths of ai agents
 
 #### Global Configuration (User-level)
 
@@ -139,25 +139,31 @@ mcp-kit/
 └── tests/                 # Test files
 ```
 
-## Requirements
+## 🔧 Requirements
 
-- Python 3.11 or higher
-- Internet connection for downloading Model Context Protocol (MCP) servers
-- Supported AI coding agent (GitHub Copilot, Continue, etc.)
-- Compatible with all major dev-tools and CLI environments
+- **Linux/macOS/Windows**
+- [uv](https://docs.astral.sh/uv/) for package management
+- [Python 3.11+](https://www.python.org/downloads/)
+- [Git](https://git-scm.com/downloads)
+  
+ If you encounter issues with an agent, please open an issue so we can refine the integration.
 
-## Contributing
+## 👥 Maintainers
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+- Rohit Soni ([@rohitsoni007](https://github.com/rohitsoni007))
+
+## 💬 Support
+
+For support, please open a [GitHub issue](https://github.com/rohitsoni007/mcp-kit/issues/new). We welcome bug reports, feature requests, and questions about using MCP CLI.
+
+## 🙏 Acknowledgements
+
+This project is based on the data from [Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers) and [Github MCP Registry](https://github.com/mcp).
 
 ## Keywords
 
 `MCP` `model-context-protocol` `ai` `cli` `dev-tools` `python` `artificial-intelligence` `developer-tools` `command-line` `automation` `ai-agents` `github-copilot` `continue` `configuration-management` `cross-platform`
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the terms of the MIT open source license. Please refer to the [LICENSE](./LICENSE) file for the full terms.

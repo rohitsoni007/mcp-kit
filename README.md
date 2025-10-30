@@ -186,8 +186,7 @@ mcp-kit/
 ├── src/mcp_cli/           # Main CLI package
 │   ├── __init__.py        # Core CLI functionality
 ├── templates/             # Configuration templates
-├── scripts/               # Build and deployment scripts
-└── tests/                 # Test files
+└── scripts/               # Build and deployment scripts
 ```
 
 ## 🔧 Requirements

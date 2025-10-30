@@ -1,35 +1,35 @@
-# MCP Kit
+<div align="center">
+    <img src="./media/logo1.png" alt="MCP Kit Logo"/>
+    <h1>MCP Kit</h1>
+    <h3><em>Setup high-quality MCP servers faster.</em></h3>
+</div>
+<p align="center">
+    <strong>Python CLI dev-tools for Model Context Protocol (MCP) - quickly download, configure and deploy MCP servers for AI agents in minutes.</strong>
+</p>
+<p align="center">
+    <a href="https://github.com/rohitsoni007/mcp-kit/actions/workflows/release.yml"><img src="https://github.com/rohitsoni007/mcp-kit/actions/workflows/release.yml/badge.svg" alt="Release"/></a>
+    <a href="https://github.com/rohitsoni007/mcp-kit/stargazers"><img src="https://img.shields.io/github/stars/rohitsoni007/mcp-kit?style=social" alt="GitHub stars"/></a>
+    <a href="https://github.com/rohitsoni007/mcp-kit/blob/main/LICENSE"><img src="https://img.shields.io/github/license/github/spec-kit" alt="License"/></a>
+    <a href="https://github.com/rohitsoni007/mcp-kit/"><img src="https://img.shields.io/badge/docs-GitHub_Pages-blue" alt="Documentation"/></a>
+</p>
 
-A command-line interface tool for downloading and configuring Model Context Protocol (MCP) servers from the official MCP ecosystem.
+---
 
 ## Overview
 
-MCP Kit provides an interactive way to discover, download, and configure MCP servers from the official [Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers) and [Github Mcp Registry](https://github.com/mcp) ecosystem. The tool automatically configures servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
-
-The Model Context Protocol (MCP) is an open standard that enables AI assistants to securely access external data sources and tools. MCP Kit simplifies the process of integrating these powerful capabilities into your development workflow.
+MCP Kit is a powerful Python CLI dev-tools package that provides an interactive way to discover, download, and configure Model Context Protocol (MCP) servers from the official [Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers) and [Github MCP Registry](https://github.com/mcp) ecosystem. This AI-powered tool automatically configures model-context-protocol servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
 
 ## Features
 
-- 🚀 Download MCP servers from GitHub releases
-- 🎯 Interactive agent selection
-- 📋 Interactive MCP server selection
-- 🔧 Automatic configuration file generation
-- 🌍 Cross-platform support (Windows, Linux, macOS)
-- 📁 Automatic configuration path detection
+- 🚀 Download Model Context Protocol (MCP) servers from GitHub releases
+- 🎯 Interactive AI agent selection and configuration
+- 📋 Interactive MCP server selection with intelligent filtering
+- 🔧 Automatic model-context-protocol configuration file generation
+- 🌍 Cross-platform Python dev-tools support (Windows, Linux, macOS)
+- 📁 Automatic AI agent configuration path detection
+- 🛠️ CLI-based workflow for seamless developer experience
 
 ## Installation
-
-### Prerequisites
-
-First, install uv (Python package manager):
-
-```bash
-# Windows (PowerShell)
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# macOS/Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
 
 ### Using uv (recommended)
 
@@ -68,24 +68,24 @@ uv sync
 ### Usage Examples
 
 ```bash
-# Interactive selection (choose from available agents)
+# Interactive Model Context Protocol server selection (choose from available AI agents)
 mcp download
 
-# Configure for GitHub Copilot
+# Configure MCP for GitHub Copilot AI agent
 mcp download --agent copilot
 
-# Configure for Continue
+# Configure model-context-protocol for Continue AI
 mcp download --agent continue
 
-# Specify version and agent
+# Specify MCP server version and AI agent
 mcp download --version v0.1.0 --agent copilot
 
-# Short form
+# Short form CLI command for quick setup
 mcp download -v v0.2.0 -a copilot
 
 ```
 
-### Initialize New Project With MCP's & Rules for MCP (🚧 Not Implemented yet)
+### Initialize New Project With MCP's & Rules (🚧 Not Implemented yet)
 
 ```bash
 mcp init <project_name>
@@ -107,8 +107,9 @@ mcp-kit/
 ## Requirements
 
 - Python 3.11 or higher
-- Internet connection for downloading MCP servers
+- Internet connection for downloading Model Context Protocol (MCP) servers
 - Supported AI coding agent (GitHub Copilot, Continue, etc.)
+- Compatible with all major dev-tools and CLI environments
 
 ## Contributing
 
@@ -117,6 +118,10 @@ mcp-kit/
 3. Make your changes
 4. Add tests if applicable
 5. Submit a pull request
+
+## Keywords
+
+`MCP` `model-context-protocol` `ai` `cli` `dev-tools` `python` `artificial-intelligence` `developer-tools` `command-line` `automation` `ai-agents` `github-copilot` `continue` `configuration-management` `cross-platform`
 
 ## License
 

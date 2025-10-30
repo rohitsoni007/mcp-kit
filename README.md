@@ -4,7 +4,7 @@
     <h3><em>Setup high-quality MCP servers faster.</em></h3>
 </div>
 <p align="center">
-    <strong>Python CLI dev-tools for Model Context Protocol (MCP) - quickly download, configure and deploy MCP servers for AI agents in minutes.</strong>
+    <strong>CLI tool to quickly download, configure and deploy MCP servers for AI agents in minutes.</strong>
 </p>
 <p align="center">
     <a href="https://github.com/rohitsoni007/mcp-kit/actions/workflows/release.yml"><img src="https://github.com/rohitsoni007/mcp-kit/actions/workflows/release.yml/badge.svg" alt="Release"/></a>

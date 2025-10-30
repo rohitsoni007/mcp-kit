@@ -143,8 +143,32 @@ def show_banner():
     console.print(Align.center(Text(TAGLINE, style="italic bright_yellow")))
     console.print()
 
-def get_mcp_config_path(agent: str = "copilot") -> Path:
-    """Get the MCP configuration path based on the agent and operating system."""
+def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = None) -> Path:
+    """Get the MCP configuration path based on the agent and operating system.
+    
+    Args:
+        agent: The agent to configure (copilot, continue, kiro, cursor, qoder)
+        project_path: If provided, returns project-specific path instead of global path
+    """
+    if project_path:
+        # Project-specific paths
+        if agent == "copilot":
+            # VS Code project: .vscode/mcp.json
+            return project_path / ".vscode" / "mcp.json"
+        elif agent == "continue":
+            # Continue project: .continue/mcpServers/mcp.json
+            return project_path / ".continue" / "mcpServers" / "mcp.json"
+        elif agent == "kiro":
+            # Kiro project: .kiro/settings/mcp.json
+            return project_path / ".kiro" / "settings" / "mcp.json"
+        elif agent == "cursor":
+            # Cursor project: .cursor/mcp.json
+            return project_path / ".cursor" / "mcp.json"
+        elif agent == "qoder":
+            # Qoder does not support project-level configuration, use global path
+            return get_mcp_config_path(agent)
+    
+    # Global/user-level paths (existing functionality)
     if agent == "continue": 
         # Continue uses ~/.continue/mcpServers/mcp.json
         return Path.home() / ".continue" / "mcpServers" / "mcp.json"
@@ -692,7 +716,7 @@ def download(
     # Create configuration
     config = create_mcp_config(selected_servers, agent)
     
-    # Get configuration path based on selected agent
+    # Get configuration path based on selected agent (global/user-level)
     config_path = get_mcp_config_path(agent)
     
     # Save configuration
@@ -703,12 +727,98 @@ def download(
         raise typer.Exit(1)
 
 @app.command()
-def init(project_name: str = typer.Argument(..., help="Name of the project to initialize")):
-    """Initialize a new MCP project (existing functionality)."""
+def init(
+    project_name: str = typer.Argument(..., help="Name of the project to initialize (use '.' for current directory)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder)"),
+    version: str = typer.Option(None, "--version", "-v", help="Version to download (defaults to current package version)"),
+):
+    """Initialize MCP configuration in a project directory."""
     show_banner()
-    console.print(f"[bold green]Initializing MCP project: {project_name}[/bold green]")
-    # Add existing init functionality here
-    console.print("[yellow]Init functionality not yet implemented[/yellow]")
+    
+    # Determine project path
+    if project_name == ".":
+        project_path = Path.cwd()
+        console.print(f"[bold green]Initializing MCP in current directory: {project_path}[/bold green]")
+    else:
+        project_path = Path.cwd() / project_name
+        console.print(f"[bold green]Initializing MCP project: {project_name}[/bold green]")
+        
+        # Create project directory if it doesn't exist
+        if not project_path.exists():
+            project_path.mkdir(parents=True, exist_ok=True)
+            console.print(f"[green]✓ Created project directory: {project_path}[/green]")
+    
+    # Download MCP servers
+    servers = download_mcp_servers(version)
+    if not servers:
+        raise typer.Exit(1)
+    
+    console.print(f"[green]✓ Downloaded {len(servers)} MCP servers[/green]")
+    
+    # Select agent if not provided
+    if not agent:
+        agent = select_agent()
+        if not agent:
+            console.print("[red]No agent selected. Exiting.[/red]")
+            raise typer.Exit(1)
+    
+    if agent not in AGENT_CONFIG:
+        console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+        raise typer.Exit(1)
+    
+    console.print(f"\n[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
+    
+    # Check if agent supports project-level configuration
+    if agent == "qoder":
+        console.print(f"[yellow]⚠️  Note: Qoder does not support project-level MCP configuration.[/yellow]")
+        console.print(f"[yellow]   Configuration will be saved to global Qoder settings instead.[/yellow]")
+        console.print()
+    
+    # Select MCP servers
+    selected_servers = select_mcp_servers(servers, agent)
+    if not selected_servers:
+        console.print("[yellow]No servers selected. Exiting.[/yellow]")
+        raise typer.Exit(0)
+    
+    console.print(f"\n[bold green]Selected {len(selected_servers)} MCP servers[/bold green]")
+    
+    # Create configuration
+    config = create_mcp_config(selected_servers, agent)
+    
+    # Get configuration path (project-specific for supported agents, global for Qoder)
+    if agent == "qoder":
+        config_path = get_mcp_config_path(agent)  # Global path for Qoder
+    else:
+        config_path = get_mcp_config_path(agent, project_path)  # Project-specific path
+    
+    # Save configuration
+    if save_mcp_config(config, config_path, agent):
+        console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
+        
+        if agent == "qoder":
+            console.print(f"[dim]Global configuration saved to: {config_path}[/dim]")
+        else:
+            console.print(f"[dim]Project configuration saved to: {config_path}[/dim]")
+        
+        # Show next steps
+        console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
+        console.print(f"1. Open your project in {AGENT_CONFIG[agent]['name']}")
+        
+        if agent == "qoder":
+            console.print(f"2. The MCP servers will be loaded from global Qoder settings")
+            console.print(f"3. Open the project in Qoder IDE")
+        else:
+            console.print(f"2. The MCP servers will be automatically loaded from: {config_path.relative_to(project_path)}")
+            if agent == "copilot":
+                console.print(f"3. Make sure you have the GitHub Copilot extension installed in VS Code")
+            elif agent == "continue":
+                console.print(f"3. Make sure you have the Continue extension installed in your IDE")
+            elif agent == "kiro":
+                console.print(f"3. Open the project in Kiro IDE")
+            elif agent == "cursor":
+                console.print(f"3. Open the project in Cursor IDE")
+    else:
+        raise typer.Exit(1)
 
 @app.callback()
 def callback(ctx: typer.Context):

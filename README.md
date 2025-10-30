@@ -59,13 +59,13 @@ uv sync
 
 ## 🤖 Supported AI Agents
 
-| Agent | CLI ID | Support |
-|-------|--------|---------|
-| **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |
-| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |
-| **[Kiro](https://kiro.dev)** | `kiro` | ✅ |
-| **[Cursor](https://cursor.sh)** | `cursor` | ✅ |
-| **[Qoder](https://qoder.com)** | `qoder` | ✅ |
+| Agent | CLI ID | Support | Notes |
+|-------|--------|---------|-------|
+| **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |  |
+| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |  |
+| **[Kiro](https://kiro.dev)** | `kiro` | ✅ |  |
+| **[Cursor](https://cursor.sh)** | `cursor` | ✅ |  |
+| **[Qoder](https://qoder.com)** | `qoder` | ⚠️ | support for global and Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 
 ### 🔧 Usage Examples for setup mcp in global paths of ai agents
 
@@ -113,18 +113,6 @@ mcp init my-project --agent kiro --version v0.0.5
 mcp init . -a cursor -v v0.0.5
 ```
 
-### Project Structure After Initialization
-
-When using `mcp init`, the configuration files are created in project-specific locations:
-
-```
-my-project/
-├── .vscode/mcp.json          # For GitHub Copilot/VS Code
-├── .continue/mcpServers/mcp.json  # For Continue
-├── .kiro/settings/mcp.json   # For Kiro
-├── .cursor/mcp.json          # For Cursor
-└── .qoder/mcp.json           # For Qoder
-```
 
 ## Development
 

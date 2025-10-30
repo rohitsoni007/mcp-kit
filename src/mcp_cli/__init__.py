@@ -79,6 +79,24 @@ AGENT_CONFIG = {
         "folder": ".continue/",
         "install_url": None,  # IDE-based, no CLI check needed
         "requires_cli": False,
+    },
+    "kiro": {
+        "name": "Kiro",
+        "folder": ".kiro/",
+        "install_url": "https://kiro.dev",
+        "requires_cli": False,
+    },
+    "cursor": {
+        "name": "Cursor",
+        "folder": ".cursor/",
+        "install_url": "https://cursor.sh",
+        "requires_cli": False,
+    },
+    "qoder": {
+        "name": "Qoder",
+        "folder": ".qoder/",
+        "install_url": "https://qoder.com",
+        "requires_cli": False,
     }
 }
 
@@ -130,8 +148,22 @@ def get_mcp_config_path(agent: str = "copilot") -> Path:
     if agent == "continue": 
         # Continue uses ~/.continue/mcpServers/mcp.json
         return Path.home() / ".continue" / "mcpServers" / "mcp.json"
+    elif agent == "kiro":
+        # Kiro uses ~/.kiro/settings/mcp.json
+        return Path.home() / ".kiro" / "settings" / "mcp.json"
+    elif agent == "cursor":
+        # Cursor uses ~/.cursor/mcp.json
+        return Path.home() / ".cursor" / "mcp.json"
+    elif agent == "qoder":
+        # Qoder uses ~/AppData/Roaming/Qoder/SharedClientCache/mcp.json on Windows
+        system = platform.system().lower()
+        if system == "windows":
+            return Path.home() / "AppData" / "Roaming" / "Qoder" / "SharedClientCache" / "mcp.json"
+        else:
+            # For non-Windows systems, use a similar pattern in user config
+            return Path.home() / ".config" / "Qoder" / "SharedClientCache" / "mcp.json"
     
-    # Default to Copilot/Kiro configuration path
+    # Default to Copilot configuration path
     system = platform.system().lower()
     
     if system == "windows":
@@ -555,7 +587,7 @@ def create_mcp_config(selected_servers: List[Dict[str, Any]], agent: str) -> Dic
             # Copy the internal server data exactly as it is, just change the top-level key
             config["servers"].update(mcp_config)
     else:
-        # Continue and other agents format: {"mcpServers": {...}}
+        # Continue, Kiro, Cursor, Qoder and other agents format: {"mcpServers": {...}}
         config = {"mcpServers": {}}
         
         for server in selected_servers:
@@ -601,7 +633,7 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
                 console.print(f"  • {server}")
                 
         else:
-            # Continue and other agents format
+            # Continue, Kiro, Cursor, Qoder and other agents format
             if "mcpServers" not in existing_config:
                 existing_config["mcpServers"] = {}
             
@@ -628,7 +660,7 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
 @app.command()
 def download(
     version: str = typer.Option(None, "--version", "-v", help="Version to download (defaults to current package version)"),
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder)"),
 ):
     """Download MCP servers and configure for selected agent."""
     show_banner()

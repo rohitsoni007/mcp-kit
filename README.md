@@ -59,15 +59,15 @@ uv sync
 
 ## 🤖 Supported AI Agents
 
-| Agent | CLI ID | Support | Notes |
-|-------|--------|---------|-------|
-| **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |  |
-| **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |  |
-| **[Kiro](https://kiro.dev)** | `kiro` | ✅ |  |
-| **[Cursor](https://cursor.sh)** | `cursor` | ✅ |  |
-| **[Qoder](https://qoder.com)** | `qoder` | ⚠️ | support for global and Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
+| Agent | Support | Notes |
+|-------|---------|-------|
+| **[GitHub Copilot](https://code.visualstudio.com)** | ✅ |  |
+| **[Continue](https://github.com/continuedev/continue)** | ✅ |  |
+| **[Kiro](https://kiro.dev)** | ✅ |  |
+| **[Cursor](https://cursor.sh)** | ✅ |  |
+| **[Qoder](https://qoder.com)** | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 
-## � MCP CLI Reference
+## 🔧 MCP CLI Reference
 
 The `mcp` command supports the following options:
 
@@ -92,35 +92,6 @@ The `mcp` command supports the following options:
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory)   |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, or `qoder`  |
 | `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
-
-### Examples
-
-```bash
-# Interactive MCP server selection
-mcp download
-
-# Download and configure for specific AI agent
-mcp download --agent kiro
-mcp download -a cursor
-
-# Download specific version for an agent
-mcp download --version v0.0.5 --agent copilot
-mcp download -v v0.0.5 -a continue
-
-# Initialize MCP in current directory
-mcp init .
-
-# Initialize MCP in new project directory
-mcp init my-project
-
-# Initialize with specific agent
-mcp init . --agent kiro
-mcp init my-project -a cursor
-
-# Initialize with specific agent and version
-mcp init . --agent copilot --version v0.0.5
-mcp init my-project -a continue -v v0.0.5
-```
 
 ### 🔧 Usage Examples
 

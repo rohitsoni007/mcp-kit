@@ -249,8 +249,10 @@ if (-not (Test-Path $distFolder)) {
     Write-Host "Created directory: $distFolder" -ForegroundColor Green
 }
 
-# Save final JSON
-$formattedData | ConvertTo-Json -Depth 8 -Compress | Out-File -FilePath $outputFile -Encoding UTF8
+# Save final JSON (without BOM)
+$jsonContent = $formattedData | ConvertTo-Json -Depth 8 -Compress
+$fullOutputPath = Join-Path (Get-Location) $outputFile
+[System.IO.File]::WriteAllText($fullOutputPath, $jsonContent, [System.Text.UTF8Encoding]::new($false))
 
 Write-Host "✅ JSON file generated successfully: $outputFile" -ForegroundColor Green
 Write-Host "Total servers: $totalServers (Base: $baseServersCount, Fetched: $fetchedServersCount)" -ForegroundColor Cyan

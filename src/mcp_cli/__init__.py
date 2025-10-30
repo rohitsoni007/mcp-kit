@@ -430,7 +430,7 @@ def select_agent(project_info: Optional[Dict[str, str]] = None) -> Optional[str]
             # Handle any readchar exceptions gracefully
             continue
 
-def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: Optional[Dict[str, str]] = None) -> Optional[List[Dict[str, Any]]]:
     """Interactive MCP server selection with keyboard navigation, table format, pagination, and search filtering."""
     selected_indices = set()
     current_index = 0
@@ -453,11 +453,12 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
             original_to_filtered_mapping = {}
             
             for i, server in enumerate(servers):
-                # Search in name and description
+                # Search in name, description, and by (organization/author)
                 name_match = query_lower in server['name'].lower()
                 desc_match = query_lower in server['description'].lower()
+                by_match = query_lower in server.get('by', '').lower()
                 
-                if name_match or desc_match:
+                if name_match or desc_match or by_match:
                     filtered_index = len(filtered_servers)
                     original_to_filtered_mapping[i] = filtered_index
                     filtered_servers.append(server)
@@ -555,7 +556,9 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
         table.add_column("Selector", style="cyan", width=3)
         table.add_column("Checkbox", style="white", width=3)
         table.add_column("Server", style="white", min_width=20)
-        table.add_column("Description", style="dim", max_width=60)
+        table.add_column("By", style="dim", width=22)
+        table.add_column("Stars", style="dim", width=10)
+        table.add_column("Description", style="dim", max_width=40)
         
         # Add rows to table for current page
         for i, server in enumerate(page_items):
@@ -582,15 +585,31 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
             
             checkbox = "☑" if original_index in selected_indices else "☐"
             
-            # Truncate description if too long
+            # Get by (author/organization) field with "By " prefix
+            by_org = server.get('by', 'Unknown')
+            # Truncate long organization names to fit in column
+            if len(by_org) > 15:
+                by_org = by_org[:12] + "..."
+            by_text = f"By {by_org}"
+            
+            # Get stargazer_count and format it with unfilled star icon
+            stars = server.get('stargazer_count', 0)
+            if stars >= 1000:
+                stars_text = f"☆ {stars/1000:.1f}k"
+            else:
+                stars_text = f"☆ {stars}"
+            
+            # Truncate description if too long (reduced to accommodate wider By column)
             description = server['description']
-            if len(description) > 60:
-                description = description[:57] + "..."
+            if len(description) > 40:
+                description = description[:33] + "..."
             
             table.add_row(
                 Text(selector, style="cyan"),
                 Text(checkbox, style=checkbox_style),
                 Text(server['name'], style=server_style),
+                Text(by_text, style=desc_style),
+                Text(stars_text, style=desc_style),
                 Text(description, style=desc_style)
             )
         
@@ -619,7 +638,7 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
         # Help text
         help_lines = [
             "Use ↑/↓ to navigate, Space to toggle, Enter to confirm, Esc to cancel",
-            "Type to search/filter servers, Backspace to delete search, Ctrl+C to clear search"
+            "Type to search/filter servers, Backspace to delete search, Delete to clear search"
         ]
         
         if total_pages > 1:
@@ -691,7 +710,7 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
                     return [servers[original_index]]
                     
             elif key == readchar.key.ESC or key == '\x1b':
-                return []
+                return None
                 
             elif key.lower() == 'q':
                 return []
@@ -712,13 +731,14 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
                     filter_servers()
                     render_server_table()
                     
-            elif key == '\x03':  # Ctrl+C to clear search
+            elif key == readchar.key.DELETE or key == readchar.key.SUPR:  # Delete key to clear search
                 if search_query:
                     search_query = ""
                     filter_servers()
                     render_server_table()
-                else:
-                    return []  # Exit if no search query
+                    
+            elif key == '\x03':  # Ctrl+C to exit
+                return None  # Return None to indicate cancellation
                     
             elif len(key) == 1 and key.isprintable():  # Regular character input for search
                 search_query += key
@@ -726,7 +746,7 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
                 render_server_table()
                 
         except KeyboardInterrupt:
-            return []
+            return None
         except Exception:
             # Handle any readchar exceptions gracefully
             continue
@@ -842,6 +862,9 @@ def download(
     
     # Select MCP servers
     selected_servers = select_mcp_servers(servers, agent)
+    if selected_servers is None:
+        console.print("[red]Server selection cancelled. Exiting.[/red]")
+        raise typer.Exit(1)
     console.print(f"\n[bold green]Selected {len(selected_servers)} MCP servers[/bold green]")
     
     # Create configuration
@@ -943,6 +966,9 @@ def init(
     
     # Select MCP servers
     selected_servers = select_mcp_servers(servers, agent, project_info)
+    if selected_servers is None:
+        console.print("[red]Server selection cancelled. Exiting.[/red]")
+        raise typer.Exit(1)
     if not selected_servers:
         console.print("[yellow]No servers selected. Exiting.[/yellow]")
         raise typer.Exit(0)

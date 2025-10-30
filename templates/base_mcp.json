@@ -2,6 +2,8 @@
     {
         "name": "Fetch",
         "description": "A Model Context Protocol server providing tools to fetch and convert web content for usage by LLMs",
+        "stargazer_count": 71583,
+        "by": "Modelcontextprotocol",
         "mcp": {
             "modelcontextprotocol/fetch": {
                 "type": "stdio",
@@ -17,6 +19,8 @@
     {
         "name": "Filesystem",
         "description": "MCP server for filesystem access",
+        "stargazer_count": 71583,
+        "by": "Modelcontextprotocol",
         "mcp": {
             "modelcontextprotocol/filesystem": {
                 "type": "stdio",
@@ -33,6 +37,8 @@
     {
         "name": "Git",
         "description": "A Model Context Protocol server providing tools to read, search, and manipulate Git repositories programmatically via LLMs",
+        "stargazer_count": 71583,
+        "by": "Modelcontextprotocol",
         "mcp": {
             "modelcontextprotocol/git": {
                 "type": "stdio",
@@ -48,6 +54,8 @@
     {
         "name": "Memory",
         "description": "MCP server for enabling memory for Claude through a knowledge graph",
+        "stargazer_count": 71583,
+        "by": "Modelcontextprotocol",
         "mcp": {
             "modelcontextprotocol/memory": {
                 "type": "stdio",
@@ -64,6 +72,8 @@
     {
         "name": "Sequential Thinking",
         "description": "MCP server for sequential thinking and problem solving",
+        "stargazer_count": 71583,
+        "by": "Modelcontextprotocol",
         "mcp": {
             "modelcontextprotocol/sequentialthinking": {
                 "type": "stdio",
@@ -80,6 +90,8 @@
     {
         "name": "Time",
         "description": "A Model Context Protocol server providing tools for time queries and timezone conversions for LLMs",
+        "stargazer_count": 71583,
+        "by": "Modelcontextprotocol",
         "mcp": {
             "modelcontextprotocol/time": {
                 "type": "stdio",

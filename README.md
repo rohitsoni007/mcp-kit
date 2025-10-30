@@ -21,7 +21,6 @@ MCP Kit is a powerful Python CLI dev-tools package that provides an interactive 
 
 ## Features
 
-- 🚀 Download Model Context Protocol (MCP) servers from GitHub releases
 - 🎯 Interactive AI agent selection and configuration
 - 📋 Interactive MCP server selection with intelligent filtering
 - 🔧 Automatic model-context-protocol configuration file generation

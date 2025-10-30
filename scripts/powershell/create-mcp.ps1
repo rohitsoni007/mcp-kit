@@ -19,6 +19,29 @@ if (Test-Path $baseTemplateFile) {
     try {
         $baseData = Get-Content $baseTemplateFile -Raw | ConvertFrom-Json
         Write-Host "✅ Loaded $($baseData.Count) base servers from template" -ForegroundColor Green
+        
+        # Add stargazer_count to base servers
+        Write-Host "Fetching GitHub stars for base servers..." -ForegroundColor Cyan
+        try {
+            $githubRepo = Invoke-RestMethod -Uri "https://api.github.com/repos/modelcontextprotocol/servers" -Headers @{"User-Agent" = "PowerShell-MCP-Client"}
+            $baseStarCount = $githubRepo.stargazers_count
+            
+            # Add stargazer_count and by field to each base server that doesn't already have it
+            for ($i = 0; $i -lt $baseData.Count; $i++) {
+                if (-not $baseData[$i].stargazer_count) {
+                    $baseData[$i] = [ordered]@{
+                        "name" = $baseData[$i].name
+                        "description" = $baseData[$i].description
+                        "stargazer_count" = $baseStarCount
+                        "by" = "Modelcontextprotocol"
+                        "mcp" = $baseData[$i].mcp
+                    }
+                }
+            }
+            Write-Host "✅ Added stargazer_count ($baseStarCount) to base servers" -ForegroundColor Green
+        } catch {
+            Write-Host "⚠️ Failed to fetch GitHub stars for base servers: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
     } catch {
         Write-Host "⚠️ Failed to load base template: $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -75,6 +98,23 @@ foreach ($server in $servers) {
     $mcpId = $null
     if ($server._meta -and $server._meta.'io.modelcontextprotocol.registry/official' -and $server._meta.'io.modelcontextprotocol.registry/official'.id) {
         $mcpId = $server._meta.'io.modelcontextprotocol.registry/official'.id
+    }
+    
+    # Extract stargazer_count from GitHub data
+    $stargazerCount = $null
+    if ($server._meta -and 
+        $server._meta.'io.modelcontextprotocol.registry/publisher-provided' -and 
+        $server._meta.'io.modelcontextprotocol.registry/publisher-provided'.github -and 
+        $server._meta.'io.modelcontextprotocol.registry/publisher-provided'.github.stargazer_count) {
+        $stargazerCount = $server._meta.'io.modelcontextprotocol.registry/publisher-provided'.github.stargazer_count
+    }
+    
+    # Extract organization/author from server name (e.g., "microsoft/markitdown" -> "Microsoft")
+    $byOrganization = $null
+    if ($name -and $name.Contains("/")) {
+        $orgName = ($name -split "/")[0]
+        # Capitalize first letter
+        $byOrganization = $orgName.Substring(0,1).ToUpper() + $orgName.Substring(1).ToLower()
     }
     
     $gallery = if ($mcpId) { "${API_URL}/${mcpId}" } else { $API_URL }
@@ -162,9 +202,21 @@ foreach ($server in $servers) {
     $mcpObject = [ordered]@{
         "name" = $simpleName
         "description" = $description
-        "mcp" = [ordered]@{
-            $name = $mcpEntry
-        }
+    }
+    
+    # Add stargazer_count if available
+    if ($stargazerCount) {
+        $mcpObject["stargazer_count"] = $stargazerCount
+    }
+    
+    # Add by organization if available
+    if ($byOrganization) {
+        $mcpObject["by"] = $byOrganization
+    }
+    
+    # Add mcp configuration
+    $mcpObject["mcp"] = [ordered]@{
+        $name = $mcpEntry
     }
 
     $formattedData += $mcpObject
@@ -179,6 +231,17 @@ if ($totalServers -eq 0) {
     $response | ConvertTo-Json -Depth 10 | Out-File "raw_response.json" -Encoding UTF8
     exit 1
 }
+
+# Sort servers by stargazer_count in descending order (highest stars first)
+Write-Host "Sorting servers by stargazer_count..." -ForegroundColor Cyan
+$formattedData = $formattedData | Sort-Object { 
+    if ($_.stargazer_count) { 
+        [int]$_.stargazer_count 
+    } else { 
+        0 
+    } 
+} -Descending
+Write-Host "✅ Servers sorted by popularity" -ForegroundColor Green
 
 # Create dist folder if it doesn't exist
 if (-not (Test-Path $distFolder)) {

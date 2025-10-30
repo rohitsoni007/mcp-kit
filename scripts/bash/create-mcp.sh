@@ -23,6 +23,31 @@ if [ -f "$BASE_TEMPLATE_FILE" ]; then
     if base_data=$(jq . "$BASE_TEMPLATE_FILE" 2>/dev/null); then
         base_servers_count=$(echo "$base_data" | jq 'length')
         echo -e "\033[32m✅ Loaded $base_servers_count base servers from template\033[0m"
+        
+        # Add stargazer_count to base servers
+        echo -e "\033[36mFetching GitHub stars for base servers...\033[0m"
+        if github_response=$(curl -s -H "User-Agent: Bash-MCP-Client" "https://api.github.com/repos/modelcontextprotocol/servers" 2>/dev/null); then
+            if base_star_count=$(echo "$github_response" | jq -r '.stargazers_count // 0' 2>/dev/null); then
+                # Add stargazer_count and by field to each base server that doesn't already have it
+                base_data=$(echo "$base_data" | jq --argjson stars "$base_star_count" '
+                    map(
+                        if .stargazer_count then . 
+                        else {
+                            name: .name,
+                            description: .description,
+                            stargazer_count: $stars,
+                            by: "Modelcontextprotocol",
+                            mcp: .mcp
+                        } end
+                    )
+                ')
+                echo -e "\033[32m✅ Added stargazer_count ($base_star_count) to base servers\033[0m"
+            else
+                echo -e "\033[33m⚠️ Failed to parse GitHub stars for base servers\033[0m"
+            fi
+        else
+            echo -e "\033[33m⚠️ Failed to fetch GitHub stars for base servers\033[0m"
+        fi
     else
         echo -e "\033[33m⚠️ Failed to load base template: Invalid JSON\033[0m"
         base_data="[]"
@@ -76,6 +101,17 @@ for i in $(seq 0 $((server_count - 1))); do
     
     # Extract MCP ID if available
     mcp_id=$(echo "$server" | jq -r '._meta."io.modelcontextprotocol.registry/official".id // empty')
+    
+    # Extract stargazer_count from GitHub data
+    stargazer_count=$(echo "$server" | jq -r '._meta."io.modelcontextprotocol.registry/publisher-provided".github.stargazer_count // empty')
+    
+    # Extract organization/author from server name (e.g., "microsoft/markitdown" -> "Microsoft")
+    by_organization=""
+    if [[ "$name" == *"/"* ]]; then
+        org_name=$(echo "$name" | cut -d'/' -f1)
+        # Capitalize first letter
+        by_organization="$(echo "${org_name:0:1}" | tr '[:lower:]' '[:upper:]')${org_name:1}"
+    fi
     
     if [ -n "$mcp_id" ]; then
         gallery="${API_URL}/${mcp_id}"
@@ -172,6 +208,16 @@ for i in $(seq 0 $((server_count - 1))); do
         --argjson mcp_entry "$mcp_entry" \
         '{name: $name, description: $description, mcp: {($server_name): $mcp_entry}}')
     
+    # Add stargazer_count if available
+    if [ -n "$stargazer_count" ] && [ "$stargazer_count" != "null" ]; then
+        mcp_object=$(echo "$mcp_object" | jq --argjson stars "$stargazer_count" '.stargazer_count = $stars')
+    fi
+    
+    # Add by organization if available
+    if [ -n "$by_organization" ]; then
+        mcp_object=$(echo "$mcp_object" | jq --arg by "$by_organization" '.by = $by')
+    fi
+    
     # Add to formatted data array
     formatted_data=$(echo "$formatted_data" | jq ". += [$mcp_object]")
 done
@@ -184,6 +230,11 @@ if [ "$total_servers" -eq 0 ]; then
     echo "$response" | jq . > raw_response.json
     exit 1
 fi
+
+# Sort servers by stargazer_count in descending order (highest stars first)
+echo -e "\033[36mSorting servers by stargazer_count...\033[0m"
+formatted_data=$(echo "$formatted_data" | jq 'sort_by(.stargazer_count // 0) | reverse')
+echo -e "\033[32m✅ Servers sorted by popularity\033[0m"
 
 # Create dist folder if it doesn't exist
 if [ ! -d "$DIST_FOLDER" ]; then

@@ -63,7 +63,9 @@ uv sync
 |-------|--------|---------|
 | **[GitHub Copilot](https://code.visualstudio.com)** | `copilot` | ✅ |
 | **[Continue](https://github.com/continuedev/continue)** | `continue` | ✅ |
-| **[Kiro](https://kiro.dev)** | `kiro` | 🚧 Coming Soon |
+| **[Kiro](https://kiro.dev)** | `kiro` | ✅ |
+| **[Cursor](https://cursor.sh)** | `cursor` | ✅ |
+| **[Qoder](https://qoder.com)** | `qoder` | ✅ |
 
 ### Usage Examples
 
@@ -76,6 +78,15 @@ mcp download --agent copilot
 
 # Configure model-context-protocol for Continue AI
 mcp download --agent continue
+
+# Configure MCP for Kiro AI agent
+mcp download --agent kiro
+
+# Configure MCP for Cursor AI agent
+mcp download --agent cursor
+
+# Configure MCP for Qoder AI agent
+mcp download --agent qoder
 
 # Specify MCP server version and AI agent
 mcp download --version v0.1.0 --agent copilot

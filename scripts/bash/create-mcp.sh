@@ -165,6 +165,7 @@ for i in $(seq 0 $((server_count - 1))); do
         identifier=""
         package_version=""
         runtime_hint=""
+        args_array="[]"
         
         if [ "$(echo "$packages" | jq 'length')" -gt 0 ]; then
             package=$(echo "$packages" | jq '.[0]')
@@ -176,25 +177,75 @@ for i in $(seq 0 $((server_count - 1))); do
             if [ "$registry_type" = "pypi" ]; then
                 runtime_hint="uvx"
             fi
-        fi
-        
-        # Build args array
-        if [ -n "$identifier" ] && [ -n "$package_version" ]; then
-            if [ "$package_version" = "latest" ]; then
-                args="[\"$identifier@$package_version\"]"
-            else
-                args="[\"$identifier==$package_version\"]"
+            
+            # Process runtime_arguments if they exist
+            runtime_arguments=$(echo "$package" | jq '.runtime_arguments // []')
+            if [ "$(echo "$runtime_arguments" | jq 'length')" -gt 0 ]; then
+                # Process each runtime argument
+                for k in $(seq 0 $(($(echo "$runtime_arguments" | jq 'length') - 1))); do
+                    arg=$(echo "$runtime_arguments" | jq ".[$k]")
+                    arg_type=$(echo "$arg" | jq -r '.type // empty')
+                    arg_name=$(echo "$arg" | jq -r '.name // empty')
+                    arg_value=$(echo "$arg" | jq -r '.value // empty')
+                    
+                    if [ "$arg_type" = "named" ] && [ -n "$arg_name" ]; then
+                        args_array=$(echo "$args_array" | jq ". += [\"$arg_name\"]")
+                        if [ -n "$arg_value" ]; then
+                            args_array=$(echo "$args_array" | jq ". += [\"$arg_value\"]")
+                        fi
+                    elif [ "$arg_type" = "positional" ] && [ -n "$arg_value" ]; then
+                        args_array=$(echo "$args_array" | jq ". += [\"$arg_value\"]")
+                    fi
+                done
             fi
-        elif [ -n "$identifier" ]; then
-            args="[\"$identifier\"]"
-        else
-            args="[\"$identifier\"]"
+            
+            # Add package identifier with version if no runtime_arguments processed it
+            if [ "$(echo "$args_array" | jq 'length')" -eq 0 ]; then
+                if [ -n "$identifier" ] && [ -n "$package_version" ]; then
+                    if [ "$package_version" = "latest" ]; then
+                        args_array=$(echo "$args_array" | jq ". += [\"$identifier@$package_version\"]")
+                    else
+                        args_array=$(echo "$args_array" | jq ". += [\"$identifier==$package_version\"]")
+                    fi
+                elif [ -n "$identifier" ]; then
+                    args_array=$(echo "$args_array" | jq ". += [\"$identifier\"]")
+                fi
+            else
+                # Add versioned package if not already in args
+                versioned_package="$identifier==$package_version"
+                if [ -n "$identifier" ] && [ -n "$package_version" ]; then
+                    if ! echo "$args_array" | jq -e --arg pkg "$versioned_package" 'index($pkg)' >/dev/null 2>&1; then
+                        args_array=$(echo "$args_array" | jq ". += [\"$versioned_package\"]")
+                    fi
+                fi
+            fi
+            
+            # Process package_arguments if they exist
+            package_arguments=$(echo "$package" | jq '.package_arguments // []')
+            if [ "$(echo "$package_arguments" | jq 'length')" -gt 0 ]; then
+                # Process each package argument
+                for k in $(seq 0 $(($(echo "$package_arguments" | jq 'length') - 1))); do
+                    arg=$(echo "$package_arguments" | jq ".[$k]")
+                    arg_type=$(echo "$arg" | jq -r '.type // empty')
+                    arg_name=$(echo "$arg" | jq -r '.name // empty')
+                    arg_value=$(echo "$arg" | jq -r '.value // empty')
+                    
+                    if [ "$arg_type" = "named" ] && [ -n "$arg_name" ]; then
+                        args_array=$(echo "$args_array" | jq ". += [\"$arg_name\"]")
+                        if [ -n "$arg_value" ]; then
+                            args_array=$(echo "$args_array" | jq ". += [\"$arg_value\"]")
+                        fi
+                    elif [ "$arg_type" = "positional" ] && [ -n "$arg_value" ]; then
+                        args_array=$(echo "$args_array" | jq ". += [\"$arg_value\"]")
+                    fi
+                done
+            fi
         fi
         
         mcp_entry=$(jq -n \
             --arg type "stdio" \
             --arg command "$runtime_hint" \
-            --argjson args "$args" \
+            --argjson args "$args_array" \
             --arg gallery "$gallery" \
             --arg version "$version" \
             '{type: $type, command: $command, args: $args, gallery: $gallery, version: $version}')

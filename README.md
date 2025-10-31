@@ -64,6 +64,8 @@ uv sync
 | **[Continue](https://github.com/continuedev/continue)** | ✅ |  |
 | **[Kiro](https://kiro.dev)** | ✅ |  |
 | **[Cursor](https://cursor.sh)** | ✅ |  |
+| **[Claude Code](https://claude.ai)** | ✅ |  |
+| **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | ✅ |  |
 | **[Qoder](https://qoder.com)** | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 | **[LM Studio](https://lmstudio.ai)** | ✅ | LM Studio does not need project-level MCP configuration |
 
@@ -82,7 +84,7 @@ The `mcp` command supports the following options:
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
-| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `qoder`, or `lmstudio`  |
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
 
 ### 🔧 Usage Examples
@@ -106,6 +108,12 @@ mcp init -a cursor
 
 # Configure MCP globally for Qoder AI agent
 mcp init -a qoder
+
+# Configure MCP globally for Claude Code
+mcp init -a claude
+
+# Configure MCP globally for Gemini CLI
+mcp init -a gemini
 
 # Configure MCP globally for LM Studio AI agent
 mcp init -a lmstudio
@@ -134,11 +142,14 @@ mcp init my-project -a kiro
 # Initialize MCP for Cursor AI agent in new project directory
 mcp init my-project -a cursor
 
+# Initialize MCP for Claude Code in new project directory
+mcp init my-project -a claude
+
+# Initialize MCP for Gemini CLI in new project directory
+mcp init my-project -a gemini
+
 # Initialize MCP for Qoder AI agent in new project directory
 mcp init my-project -a qoder
-
-# Initialize MCP for LM Studio AI agent in new project directory
-mcp init my-project -a lmstudio
 
 # Initialize with specific agent and version
 mcp init my-project --agent kiro --version v0.0.5

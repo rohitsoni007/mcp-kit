@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - LM Studio agent support for MCP server configuration
+- Claude Code agent support for MCP server configuration
+- Gemini CLI agent support for MCP server configuration
+- Agents Alphabetically Ordered
 
 ## [0.0.8] - 2025-10-31
 

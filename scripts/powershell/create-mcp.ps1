@@ -165,28 +165,65 @@ foreach ($server in $servers) {
         $identifier = $null
         $packageVersion = $null
         $runtime_hint = $null
+        $args = @()
+        
         foreach ($package in $server.packages) {
             $identifier = $package.identifier
             $packageVersion = $package.version
-            $registry_type =  $package.registry_type
+            $registry_type = $package.registry_type
             $runtime_hint = $package.runtime_hint
+            
             if($registry_type -eq "pypi") {
                 $runtime_hint = "uvx"
             }
-            break
-        }
-        
-        if ($identifier -and $packageVersion) {
-            if($packageVersion -eq "latest"){
-                $args = @("$identifier@$packageVersion")
-            }else{
-                $args = @("$identifier==$packageVersion")
+            
+            # Process runtime_arguments if they exist
+            if ($package.runtime_arguments) {
+                foreach ($arg in $package.runtime_arguments) {
+                    if ($arg.type -eq "named" -and $arg.name) {
+                        $args += $arg.name
+                        if ($arg.value) {
+                            $args += $arg.value
+                        }
+                    } elseif ($arg.type -eq "positional" -and $arg.value) {
+                        $args += $arg.value
+                    }
+                }
             }
             
-        } elseif ($identifier) {
-            $args = @($identifier)
-        } else {
-            $args = @($identifier)
+            # Add package identifier with version if no runtime_arguments processed it
+            if ($args.Count -eq 0) {
+                if ($identifier -and $packageVersion) {
+                    if($packageVersion -eq "latest"){
+                        $args += "$identifier@$packageVersion"
+                    }else{
+                        $args += "$identifier==$packageVersion"
+                    }
+                } elseif ($identifier) {
+                    $args += $identifier
+                }
+            } else {
+                # Add versioned package if not already in args
+                if ($identifier -and $packageVersion -and $args -notcontains "$identifier==$packageVersion") {
+                    $args += "$identifier==$packageVersion"
+                }
+            }
+            
+            # Process package_arguments if they exist
+            if ($package.package_arguments) {
+                foreach ($arg in $package.package_arguments) {
+                    if ($arg.type -eq "named" -and $arg.name) {
+                        $args += $arg.name
+                        if ($arg.value) {
+                            $args += $arg.value
+                        }
+                    } elseif ($arg.type -eq "positional" -and $arg.value) {
+                        $args += $arg.value
+                    }
+                }
+            }
+            
+            break
         }
 
         $mcpEntry = [ordered]@{

@@ -242,8 +242,8 @@ if [ ! -d "$DIST_FOLDER" ]; then
     echo -e "\033[32mCreated directory: $DIST_FOLDER\033[0m"
 fi
 
-# Save final JSON (compact format)
-echo "$formatted_data" | jq -c . > "$OUTPUT_FILE"
+# Save final JSON (compact format with UTF-8 encoding)
+printf '%s' "$(echo "$formatted_data" | jq -c .)" > "$OUTPUT_FILE"
 
 echo -e "\033[32m✅ JSON file generated successfully: $OUTPUT_FILE\033[0m"
 echo -e "\033[36mTotal servers: $total_servers (Base: $base_servers_count, Fetched: $fetched_servers_count)\033[0m"

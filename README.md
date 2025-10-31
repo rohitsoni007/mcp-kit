@@ -85,7 +85,6 @@ The `mcp` command supports the following options:
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
-| `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
 
 ### 🔧 Usage Examples
 
@@ -118,12 +117,6 @@ mcp init -a gemini
 # Configure MCP globally for LM Studio AI agent
 mcp init -a lmstudio
 
-# Specify MCP server version and AI agent for global configuration
-mcp init --version v0.0.5 --agent kiro
-
-# Short form CLI command for quick global setup
-mcp init -v v0.0.5 -a cursor
-
 # Initialize MCP in current directory
 mcp init .
 
@@ -151,11 +144,9 @@ mcp init my-project -a gemini
 # Initialize MCP for Qoder AI agent in new project directory
 mcp init my-project -a qoder
 
-# Initialize with specific agent and version
-mcp init my-project --agent kiro --version v0.0.5
-
-# Short form for project initialization
-mcp init . -a cursor -v v0.0.5
+# Show version
+mcp --version
+mcp -v
 
 ```
 

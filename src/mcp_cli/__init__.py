@@ -142,6 +142,12 @@ class BannerGroup(TyperGroup):
         show_banner()
         super().format_help(ctx, formatter)
 
+def version_callback(value: bool):
+    """Handle version flag."""
+    if value:
+        console.print(__version__)
+        raise typer.Exit()
+
 app = typer.Typer(
     name="MCP-CLI",
     help="Setup tool for MCP for agents",
@@ -876,7 +882,6 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Name of the project to initialize (use '.' for current directory, omit for global configuration)"),
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
-    version: str = typer.Option(None, "--version", "-v", help="Version to download (defaults to current package version)"),
 ):
     """Initialize MCP configuration in a project directory or globally."""
     show_banner()
@@ -947,7 +952,7 @@ def init(
             console.print(f"[green]✓ Created project directory: {project_path}[/green]")
     
     # Download MCP servers
-    servers = download_mcp_servers(version)
+    servers = download_mcp_servers()
     if not servers:
         raise typer.Exit(1)
     
@@ -1068,9 +1073,12 @@ def init(
         raise typer.Exit(1)
 
 @app.callback()
-def callback(ctx: typer.Context):
+def callback(
+    ctx: typer.Context,
+    version: Optional[bool] = typer.Option(None, "--version", "-v", callback=version_callback, is_eager=True, help="Show version and exit")
+):
     """Show banner when no subcommand is provided."""
-    if ctx.invoked_subcommand is None and "--help" not in sys.argv and "-h" not in sys.argv:
+    if ctx.invoked_subcommand is None and "--help" not in sys.argv and "-h" not in sys.argv and "--version" not in sys.argv and "-v" not in sys.argv:
         show_banner()
         console.print(Align.center("[dim]Run 'mcp --help' for usage information[/dim]"))
         console.print()

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - updated mutliple argument passing to **oraios/serena** or similar
+- removed description for better ui for choose mcp server
 
 ## [0.0.7] - 2025-10-31
 

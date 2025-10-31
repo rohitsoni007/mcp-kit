@@ -456,12 +456,11 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
             original_to_filtered_mapping = {}
             
             for i, server in enumerate(servers):
-                # Search in name, description, and by (organization/author)
+                # Search in name and by (organization/author)
                 name_match = query_lower in server['name'].lower()
-                desc_match = query_lower in server['description'].lower()
                 by_match = query_lower in server.get('by', '').lower()
                 
-                if name_match or desc_match or by_match:
+                if name_match or by_match:
                     filtered_index = len(filtered_servers)
                     original_to_filtered_mapping[i] = filtered_index
                     filtered_servers.append(server)
@@ -559,9 +558,8 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
         table.add_column("Selector", style="cyan", width=3)
         table.add_column("Checkbox", style="white", width=3)
         table.add_column("Server", style="white", min_width=20)
-        table.add_column("By", style="dim", width=22)
+        table.add_column("By", style="dim", width=28)
         table.add_column("Stars", style="dim", width=10)
-        table.add_column("Description", style="dim", max_width=40)
         
         # Add rows to table for current page
         for i, server in enumerate(page_items):
@@ -591,9 +589,9 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
             # Get by (author/organization) field with "By " prefix
             by_org = server.get('by', 'Unknown')
             # Truncate long organization names to fit in column
-            if len(by_org) > 15:
-                by_org = by_org[:12] + "..."
-            by_text = f"By {by_org}"
+            if len(by_org) > 20:
+                by_org = by_org[:20] + "..."
+            by_text = f"By: {by_org}"
             
             # Get stargazer_count and format it with unfilled star icon
             stars = server.get('stargazer_count', 0)
@@ -602,18 +600,12 @@ def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: 
             else:
                 stars_text = f"☆ {stars}"
             
-            # Truncate description if too long (reduced to accommodate wider By column)
-            description = server['description']
-            if len(description) > 40:
-                description = description[:33] + "..."
-            
             table.add_row(
                 Text(selector, style="cyan"),
                 Text(checkbox, style=checkbox_style),
                 Text(server['name'], style=server_style),
                 Text(by_text, style=desc_style),
-                Text(stars_text, style=desc_style),
-                Text(description, style=desc_style)
+                Text(stars_text, style=desc_style)
             )
         
         # Create status info for the panel subtitle

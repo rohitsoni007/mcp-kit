@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Claude Code agent support for MCP server configuration
 - Gemini CLI agent support for MCP server configuration
 - Agents Alphabetically Ordered
+- Cleaner MCP server configuration removing gallery & version for agents other than copilot
 
 ## [0.0.8] - 2025-10-31
 

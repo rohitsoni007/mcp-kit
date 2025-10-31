@@ -786,19 +786,26 @@ def create_mcp_config(selected_servers: List[Dict[str, Any]], agent: str) -> Dic
     """Create MCP configuration from selected servers based on agent format."""
     if agent == "copilot":
         # GitHub Copilot format: {"servers": {...}, "inputs": []}
+        # Keep gallery and version fields for copilot
         config = {"servers": {}, "inputs": []}
         
         for server in selected_servers:
             mcp_config = server.get("mcp", {})
-            # Copy the internal server data exactly as it is, just change the top-level key
+            # Copy the internal server data exactly as it is for copilot
             config["servers"].update(mcp_config)
     else:
         # Continue, Kiro, Cursor, Qoder, LM Studio, Claude Agent and other agents format: {"mcpServers": {...}}
+        # Remove gallery and version fields for other agents
         config = {"mcpServers": {}}
         
         for server in selected_servers:
             mcp_config = server.get("mcp", {})
-            config["mcpServers"].update(mcp_config)
+            # Clean the server configuration by removing gallery and version fields
+            cleaned_config = {}
+            for server_key, server_data in mcp_config.items():
+                cleaned_server_data = {k: v for k, v in server_data.items() if k not in ["gallery", "version"]}
+                cleaned_config[server_key] = cleaned_server_data
+            config["mcpServers"].update(cleaned_config)
     
     return config
 
@@ -1005,7 +1012,6 @@ def init(
     if save_mcp_config(config, config_path, agent):
         if is_global:
             console.print(f"\n[bold green]🎉 MCP global configuration completed successfully![/bold green]")
-            console.print(f"[dim]Global configuration saved to: {config_path}[/dim]")
             
             # Show next steps for global configuration
             console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
@@ -1029,11 +1035,6 @@ def init(
                 console.print(f"3. Use 'gemini' command to start a new conversation")
         else:
             console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
-            
-            if agent == "qoder":
-                console.print(f"[dim]Global configuration saved to: {config_path}[/dim]")
-            else:
-                console.print(f"[dim]Project configuration saved to: {config_path}[/dim]")
             
             # Show next steps for project configuration
             console.print(f"\n[bold cyan]Next steps:[/bold cyan]")

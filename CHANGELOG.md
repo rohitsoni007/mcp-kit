@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8] - 2025-10-31
+
+### Added
+- updated mutliple argument passing to **oraios/serena** or similar
+
 ## [0.0.7] - 2025-10-31
 
 ### Changed

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7] - 2025-10-31
+
+### Changed
+- **BREAKING**: Removed separate `mcp download` command for global configuration
+- Consolidated all MCP functionality into `mcp init` command
+- Simplified command structure: `mcp init` (no arguments) now defaults to global configuration
+- Updated CLI behavior: `mcp init` = global, `mcp init .` or `mcp init <project>` = project-specific
+
 ## [0.0.6] - 2025-10-31
 
 ### Added

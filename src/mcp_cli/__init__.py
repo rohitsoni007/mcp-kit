@@ -10,15 +10,18 @@
 # ///
 """MCP Kit - A command-line tool for initializing MCP in agents.
 Usage:
+    # Global configuration (default)
+    uvx mcp-cli.py init
+    
+    # Project-specific configuration
     uvx mcp-cli.py init <project-name>
     uvx mcp-cli.py init .
-    uvx mcp-cli.py init --here
 
 Or install globally:
     uv tool install --from mcp-cli.py mcp-cli
-    mcp init <project-name>
-    mcp init .
-    mcp init --here
+    mcp init                    # Global configuration
+    mcp init <project-name>     # Project-specific
+    mcp init .                  # Current directory
 """
 
 __version__ = "0.0.6"
@@ -832,111 +835,81 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
         console.print(f"[red]Failed to save configuration: {str(e)}[/red]")
         return False
 
-@app.command()
-def download(
-    version: str = typer.Option(None, "--version", "-v", help="Version to download (defaults to current package version)"),
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder)"),
-):
-    """Download MCP servers and configure for selected agent."""
-    show_banner()
-    
-    # Download MCP servers
-    servers = download_mcp_servers(version)
-    if not servers:
-        raise typer.Exit(1)
-    
-    console.print(f"[green]✓ Downloaded {len(servers)} MCP servers[/green]")
-    
-    # Select agent if not provided
-    if not agent:
-        agent = select_agent()
-        if not agent:
-            console.print("[red]No agent selected. Exiting.[/red]")
-            raise typer.Exit(1)
-    
-    if agent not in AGENT_CONFIG:
-        console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
-        raise typer.Exit(1)
-    
-    console.print(f"\n[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
-    
-    # Select MCP servers
-    selected_servers = select_mcp_servers(servers, agent)
-    if selected_servers is None:
-        console.print("[red]Server selection cancelled. Exiting.[/red]")
-        raise typer.Exit(1)
-    console.print(f"\n[bold green]Selected {len(selected_servers)} MCP servers[/bold green]")
-    
-    # Create configuration
-    config = create_mcp_config(selected_servers, agent)
-    
-    # Get configuration path based on selected agent (global/user-level)
-    config_path = get_mcp_config_path(agent)
-    
-    # Save configuration
-    if save_mcp_config(config, config_path, agent):
-        console.print(f"\n[bold green]🎉 MCP configuration completed successfully![/bold green]")
-        console.print(f"[dim]Configuration saved to: {config_path}[/dim]")
-    else:
-        raise typer.Exit(1)
+
 
 @app.command()
 def init(
-    project_name: str = typer.Argument(..., help="Name of the project to initialize (use '.' for current directory)"),
+    project_name: Optional[str] = typer.Argument(None, help="Name of the project to initialize (use '.' for current directory, omit for global configuration)"),
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder)"),
     version: str = typer.Option(None, "--version", "-v", help="Version to download (defaults to current package version)"),
 ):
-    """Initialize MCP configuration in a project directory."""
+    """Initialize MCP configuration in a project directory or globally."""
     show_banner()
     
-    # Determine project path
-    working_directory = Path.cwd()
-    if project_name == ".":
-        project_path = working_directory
-        target_directory = working_directory
-        directory_created = False
+    # Determine if this is global configuration (when no project name is provided)
+    is_global = project_name is None
+    
+    if is_global:
+        # Global configuration mode
+        project_info = None
+        project_path = None
+        console.print(Panel(
+            Align.center(Text("Global MCP Configuration", style="bold yellow")),
+            title="[bold cyan]Setup Mode[/bold cyan]",
+            border_style="yellow",
+            padding=(0, 1),
+            height=3
+        ))
+        console.print()
     else:
-        project_path = working_directory / project_name
-        target_directory = project_path
-        
-        # Check if directory exists before creating
-        directory_existed = project_path.exists()
-        
-        # Create project directory if it doesn't exist
-        if not directory_existed:
-            project_path.mkdir(parents=True, exist_ok=True)
-            directory_created = True
-        else:
+        # Project-specific configuration mode
+        working_directory = Path.cwd()
+        if project_name == ".":
+            project_path = working_directory
+            target_directory = working_directory
             directory_created = False
-    
-    # Prepare project info for display
-    project_info = {
-        "project_name": project_name,
-        "working_directory": str(working_directory),
-        "target_directory": str(target_directory)
-    }
-    
-    # Display project setup information
-    setup_table = Table(show_header=False, box=None, padding=(0, 1))
-    setup_table.add_column("Label", style="cyan", width=18)
-    setup_table.add_column("Path", style="white")
-    
-    setup_table.add_row("Project:", project_name)
-    setup_table.add_row("Working Path:", str(working_directory))
-    setup_table.add_row("Target Path:", str(target_directory))
-    
-    setup_panel = Panel(
-        setup_table,
-        title="[bold cyan]Project Setup[/bold cyan]",
-        border_style="cyan",
-        padding=(1, 2)
-    )
-    
-    console.print(setup_panel)
-    console.print()
-    
-    if project_name != "." and directory_created:
-        console.print(f"[green]✓ Created project directory: {project_path}[/green]")
+        else:
+            project_path = working_directory / project_name
+            target_directory = project_path
+            
+            # Check if directory exists before creating
+            directory_existed = project_path.exists()
+            
+            # Create project directory if it doesn't exist
+            if not directory_existed:
+                project_path.mkdir(parents=True, exist_ok=True)
+                directory_created = True
+            else:
+                directory_created = False
+        
+        # Prepare project info for display
+        project_info = {
+            "project_name": project_name,
+            "working_directory": str(working_directory),
+            "target_directory": str(target_directory)
+        }
+        
+        # Display project setup information
+        setup_table = Table(show_header=False, box=None, padding=(0, 1))
+        setup_table.add_column("Label", style="cyan", width=18)
+        setup_table.add_column("Path", style="white")
+        
+        setup_table.add_row("Project:", project_name)
+        setup_table.add_row("Working Path:", str(working_directory))
+        setup_table.add_row("Target Path:", str(target_directory))
+        
+        setup_panel = Panel(
+            setup_table,
+            title="[bold cyan]Project Setup[/bold cyan]",
+            border_style="cyan",
+            padding=(1, 2)
+        )
+        
+        console.print(setup_panel)
+        console.print()
+        
+        if project_name != "." and directory_created:
+            console.print(f"[green]✓ Created project directory: {project_path}[/green]")
     
     # Download MCP servers
     servers = download_mcp_servers(version)
@@ -978,38 +951,57 @@ def init(
     # Create configuration
     config = create_mcp_config(selected_servers, agent)
     
-    # Get configuration path (project-specific for supported agents, global for Qoder)
-    if agent == "qoder":
-        config_path = get_mcp_config_path(agent)  # Global path for Qoder
+    # Get configuration path based on mode (global vs project-specific)
+    if is_global or agent == "qoder":
+        config_path = get_mcp_config_path(agent)  # Global path
     else:
         config_path = get_mcp_config_path(agent, project_path)  # Project-specific path
     
     # Save configuration
     if save_mcp_config(config, config_path, agent):
-        console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
-        
-        if agent == "qoder":
+        if is_global:
+            console.print(f"\n[bold green]🎉 MCP global configuration completed successfully![/bold green]")
             console.print(f"[dim]Global configuration saved to: {config_path}[/dim]")
-        else:
-            console.print(f"[dim]Project configuration saved to: {config_path}[/dim]")
-        
-        # Show next steps
-        console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
-        console.print(f"1. Open your project in {AGENT_CONFIG[agent]['name']}")
-        
-        if agent == "qoder":
-            console.print(f"2. The MCP servers will be loaded from global Qoder settings")
-            console.print(f"3. Open the project in Qoder IDE")
-        else:
-            console.print(f"2. The MCP servers will be automatically loaded from: {config_path.relative_to(project_path)}")
+            
+            # Show next steps for global configuration
+            console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
+            console.print(f"1. Open {AGENT_CONFIG[agent]['name']}")
+            console.print(f"2. The MCP servers will be loaded from global settings")
             if agent == "copilot":
                 console.print(f"3. Make sure you have the GitHub Copilot extension installed in VS Code")
             elif agent == "continue":
                 console.print(f"3. Make sure you have the Continue extension installed in your IDE")
             elif agent == "kiro":
-                console.print(f"3. Open the project in Kiro IDE")
+                console.print(f"3. The configuration is available across all Kiro projects")
             elif agent == "cursor":
-                console.print(f"3. Open the project in Cursor IDE")
+                console.print(f"3. The configuration is available across all Cursor projects")
+            elif agent == "qoder":
+                console.print(f"3. The configuration is available across all Qoder projects")
+        else:
+            console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
+            
+            if agent == "qoder":
+                console.print(f"[dim]Global configuration saved to: {config_path}[/dim]")
+            else:
+                console.print(f"[dim]Project configuration saved to: {config_path}[/dim]")
+            
+            # Show next steps for project configuration
+            console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
+            console.print(f"1. Open your project in {AGENT_CONFIG[agent]['name']}")
+            
+            if agent == "qoder":
+                console.print(f"2. The MCP servers will be loaded from global Qoder settings")
+                console.print(f"3. Open the project in Qoder IDE")
+            else:
+                console.print(f"2. The MCP servers will be automatically loaded from: {config_path.relative_to(project_path)}")
+                if agent == "copilot":
+                    console.print(f"3. Make sure you have the GitHub Copilot extension installed in VS Code")
+                elif agent == "continue":
+                    console.print(f"3. Make sure you have the Continue extension installed in your IDE")
+                elif agent == "kiro":
+                    console.print(f"3. Open the project in Kiro IDE")
+                elif agent == "cursor":
+                    console.print(f"3. Open the project in Cursor IDE")
     else:
         raise typer.Exit(1)
 

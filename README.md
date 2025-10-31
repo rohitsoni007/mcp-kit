@@ -74,68 +74,63 @@ The `mcp` command supports the following options:
 
 | Command     | Description                                                    |
 |-------------|----------------------------------------------------------------|
-| `download`  | Download and configure MCP servers for AI agents (global configuration) |
-| `init`      | Initialize MCP configuration in a project directory (project-specific configuration) |
-
-### `mcp download` Arguments & Options
-
-| Argument/Option | Type     | Description                                                                  |
-|-----------------|----------|------------------------------------------------------------------------------|
-| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, or `qoder`  |
-| `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
+| `init`      | Initialize MCP configuration (supports both project-specific and global configuration) |
 
 ### `mcp init` Arguments & Options
 
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
-| `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory)   |
+| `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, or `qoder`  |
 | `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
 
 ### 🔧 Usage Examples
 
-#### Global Configuration (User-level)
-
 ```bash
 # Interactive Model Context Protocol server selection (choose from available AI agents)
-mcp download
+# Configure MCP globally
+mcp init
 
-# Configure MCP for GitHub Copilot AI agent
-mcp download -a copilot
+# Configure MCP globally for GitHub Copilot AI agent
+mcp init -a copilot
 
-# Configure model-context-protocol for Continue AI
-mcp download -a continue
+# Configure MCP globally for Continue AI
+mcp init -a continue
 
-# Configure MCP for Kiro AI agent
-mcp download -a kiro
+# Configure MCP globally for Kiro AI agent
+mcp init -a kiro
 
-# Configure MCP for Cursor AI agent
-mcp download -a cursor
+# Configure MCP globally for Cursor AI agent
+mcp init -a cursor
 
-# Configure MCP for Qoder AI agent
-mcp download -a qoder
+# Configure MCP globally for Qoder AI agent
+mcp init -a qoder
 
-# Specify MCP server version and AI agent
-mcp download --version v0.0.5 --agent kiro
+# Specify MCP server version and AI agent for global configuration
+mcp init --version v0.0.5 --agent kiro
 
-# Short form CLI command for quick setup
-mcp download -v v0.0.5 -a cursor
-```
+# Short form CLI command for quick global setup
+mcp init -v v0.0.5 -a cursor
 
-#### Project-specific Configuration
-
-```bash
 # Initialize MCP in current directory
 mcp init .
 
 # Initialize MCP in a new project directory
 mcp init my-project
 
-# Initialize MCP for specific agent in new project directory
+# Initialize MCP for GitHub Copilot AI agent in new project directory
 mcp init my-project -a copilot
+
+# Initialize MCP for Continue AI agent in new project directory
 mcp init my-project -a continue
+
+# Initialize MCP for Kiro AI agent in new project directory
 mcp init my-project -a kiro
+
+# Initialize MCP for Cursor AI agent in new project directory
 mcp init my-project -a cursor
+
+# Initialize MCP for Qoder AI agent in new project directory
 mcp init my-project -a qoder
 
 # Initialize with specific agent and version

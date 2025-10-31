@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-cli"
-version = "0.0.7"
+version = "0.0.8"
 description = "A command-line interface tool for MCP server management and project initialization"
 readme = "README.md"
 requires-python = ">=3.11"

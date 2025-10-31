@@ -24,7 +24,7 @@ Or install globally:
     mcp init .                  # Current directory
 """
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 import os
 import subprocess

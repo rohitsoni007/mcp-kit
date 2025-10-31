@@ -116,8 +116,29 @@ jobs:
         # Show current version
         echo "Current version: $(grep '^current_version = ' .bumpversion.cfg | cut -d' ' -f3)"
         
+        # Show files that will be modified
+        echo "Files configured for version bump:"
+        grep -A2 "bumpversion:file:" .bumpversion.cfg
+        
         # Bump version
         bump2version ${{ github.event.inputs.version_bump }} --verbose
+        
+        # Show what files were actually modified
+        echo "Files modified during version bump:"
+        git diff --name-only HEAD~1
+        
+        # Verify changelog was updated
+        echo "Verifying changelog update..."
+        if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+          echo "✅ Changelog contains [Unreleased] section"
+        else
+          echo "❌ Changelog missing [Unreleased] section"
+          exit 1
+        fi
+        
+        # Show the updated changelog section
+        echo "Updated changelog section:"
+        head -20 CHANGELOG.md
         
         # Push changes
         git push origin main --tags

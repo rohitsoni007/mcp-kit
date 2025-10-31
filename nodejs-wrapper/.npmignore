@@ -1,0 +1,10 @@
+test/
+*.test.js
+.git/
+.github/
+*.md
+!README.md
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,9 @@
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.DS_Store
+Thumbs.db
+*.tgz
+*.tar.gz

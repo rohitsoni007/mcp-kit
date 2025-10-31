@@ -100,6 +100,12 @@ AGENT_CONFIG = {
         "folder": ".qoder/",
         "install_url": "https://qoder.com",
         "requires_cli": False,
+    },
+    "lmstudio": {
+        "name": "LM Studio",
+        "folder": ".lmstudio/",
+        "install_url": "https://lmstudio.ai",
+        "requires_cli": False,
     }
 }
 
@@ -150,7 +156,7 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
     """Get the MCP configuration path based on the agent and operating system.
     
     Args:
-        agent: The agent to configure (copilot, continue, kiro, cursor, qoder)
+        agent: The agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio)
         project_path: If provided, returns project-specific path instead of global path
     """
     if project_path:
@@ -169,6 +175,9 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
             return project_path / ".cursor" / "mcp.json"
         elif agent == "qoder":
             # Qoder does not support project-level configuration, use global path
+            return get_mcp_config_path(agent)
+        elif agent == "lmstudio":
+            # LM Studio does not support project-level configuration, use global path
             return get_mcp_config_path(agent)
     
     # Global/user-level paths (existing functionality)
@@ -189,6 +198,9 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
         else:
             # For non-Windows systems, use a similar pattern in user config
             return Path.home() / ".config" / "Qoder" / "SharedClientCache" / "mcp.json"
+    elif agent == "lmstudio":
+        # LM Studio uses ~/.lmstudio/mcp.json
+        return Path.home() / ".lmstudio" / "mcp.json"
     
     # Default to Copilot configuration path
     system = platform.system().lower()
@@ -757,7 +769,7 @@ def create_mcp_config(selected_servers: List[Dict[str, Any]], agent: str) -> Dic
             # Copy the internal server data exactly as it is, just change the top-level key
             config["servers"].update(mcp_config)
     else:
-        # Continue, Kiro, Cursor, Qoder and other agents format: {"mcpServers": {...}}
+        # Continue, Kiro, Cursor, Qoder, LM Studio and other agents format: {"mcpServers": {...}}
         config = {"mcpServers": {}}
         
         for server in selected_servers:
@@ -803,7 +815,7 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
                 console.print(f"  • {server}")
                 
         else:
-            # Continue, Kiro, Cursor, Qoder and other agents format
+            # Continue, Kiro, Cursor, Qoder, LM Studio and other agents format
             if "mcpServers" not in existing_config:
                 existing_config["mcpServers"] = {}
             
@@ -832,7 +844,7 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Name of the project to initialize (use '.' for current directory, omit for global configuration)"),
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio)"),
     version: str = typer.Option(None, "--version", "-v", help="Version to download (defaults to current package version)"),
 ):
     """Initialize MCP configuration in a project directory or globally."""
@@ -928,6 +940,10 @@ def init(
         console.print(f"[yellow]⚠️  Note: Qoder does not support project-level MCP configuration.[/yellow]")
         console.print(f"[yellow]   Configuration will be saved to global Qoder settings instead.[/yellow]")
         console.print()
+    elif agent == "lmstudio":
+        console.print(f"[yellow]⚠️  Note: LM Studio does not need project-level MCP configuration.[/yellow]")
+        console.print(f"[yellow]   Configuration will be saved to global LM Studio settings instead.[/yellow]")
+        console.print()
     
     # Select MCP servers
     selected_servers = select_mcp_servers(servers, agent, project_info)
@@ -944,7 +960,7 @@ def init(
     config = create_mcp_config(selected_servers, agent)
     
     # Get configuration path based on mode (global vs project-specific)
-    if is_global or agent == "qoder":
+    if is_global or agent == "qoder" or agent == "lmstudio":
         config_path = get_mcp_config_path(agent)  # Global path
     else:
         config_path = get_mcp_config_path(agent, project_path)  # Project-specific path
@@ -969,6 +985,8 @@ def init(
                 console.print(f"3. The configuration is available across all Cursor projects")
             elif agent == "qoder":
                 console.print(f"3. The configuration is available across all Qoder projects")
+            elif agent == "lmstudio":
+                console.print(f"3. The configuration is available across all LM Studio projects")
         else:
             console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
             
@@ -984,6 +1002,9 @@ def init(
             if agent == "qoder":
                 console.print(f"2. The MCP servers will be loaded from global Qoder settings")
                 console.print(f"3. Open the project in Qoder IDE")
+            elif agent == "lmstudio":
+                console.print(f"2. The MCP servers will be loaded from global LM Studio settings")
+                console.print(f"3. Open the chat in LM Studio")
             else:
                 console.print(f"2. The MCP servers will be automatically loaded from: {config_path.relative_to(project_path)}")
                 if agent == "copilot":
@@ -994,6 +1015,8 @@ def init(
                     console.print(f"3. Open the project in Kiro IDE")
                 elif agent == "cursor":
                     console.print(f"3. Open the project in Cursor IDE")
+                elif agent == "lmstudio":
+                    console.print(f"3. Open the chat in LM Studio")
     else:
         raise typer.Exit(1)
 

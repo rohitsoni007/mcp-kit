@@ -1,6 +1,6 @@
 <div align="center">
-    <img src="./media/logo1.png" alt="MCP Kit Logo"/>
-    <h1>MCP Kit</h1>
+    <img src="./media/logo.png" alt="MCP Gearbox Logo"/>
+    <h1>MCP Gearbox</h1>
     <h3><em>Setup high-quality MCP servers faster.</em></h3>
 </div>
 <p align="center">
@@ -17,7 +17,7 @@
 
 ## 🤔 Overview
 
-MCP Kit is a powerful Python CLI dev-tools package that provides an interactive way to discover, download, and configure Model Context Protocol (MCP) servers from the official ecosystem. This AI-powered tool automatically configures model-context-protocol servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
+MCP Gearbox is a powerful Python CLI dev-tools package that provides an interactive way to discover, download, and configure Model Context Protocol (MCP) servers from the official ecosystem. This AI-powered tool automatically configures model-context-protocol servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
 
 
 ## ⚡ Installation

@@ -1,6 +1,6 @@
-# Contributing to MCP Kit
+# Contributing to MCP Gearbox
 
-Thank you for your interest in contributing to MCP Kit! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to MCP Gearbox! This document provides guidelines and information for contributors.
 
 ## Development Setup
 
@@ -313,4 +313,4 @@ Contributors will be recognized in:
 - Release notes for significant contributions
 - Special recognition for major features or improvements
 
-Thank you for contributing to MCP Kit!
+Thank you for contributing to MCP Gearbox!

@@ -88,6 +88,7 @@ The `mcp` command supports the following options:
 | Command     | Description                                                    |
 |-------------|----------------------------------------------------------------|
 | `init`      | Initialize MCP configuration (supports both project-specific and global configuration) |
+| `list`      | List configured MCP servers                                   |
 | `rm`        | Remove MCP servers from configuration                         |
 
 ### `mcp init` Arguments & Options
@@ -97,9 +98,14 @@ The `mcp` command supports the following options:
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 
-### `mcp rm` Arguments & Options
+### `mcp list` Arguments & Options
 
-#### Arguments & Options
+| Argument/Option | Type     | Description                                                                  |
+|-----------------|----------|------------------------------------------------------------------------------|
+| `--agent`, `-a` | Option   | AI agent to list servers for: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
+
+### `mcp rm` Arguments & Options
 
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
@@ -166,6 +172,33 @@ mcp init my-project -a gemini
 
 # Initialize MCP for Qoder AI agent in new project directory
 mcp init my-project -a qoder
+```
+
+#### `mcp list` Examples
+
+```bash
+# Interactive MCP server listing (choose from available AI agents)
+# List servers from global configuration
+mcp list
+
+# List servers for specific agent from global configuration
+mcp list -a copilot
+mcp list -a continue
+mcp list -a kiro
+mcp list -a cursor
+mcp list -a claude
+mcp list -a gemini
+mcp list -a qoder
+mcp list -a lmstudio
+
+# List servers from current directory configuration
+mcp list -p .
+
+# List servers from specific project directory
+mcp list -p my-project
+
+# List servers for specific agent from project
+mcp list -a copilot -p my-project
 ```
 
 #### `mcp rm` Examples

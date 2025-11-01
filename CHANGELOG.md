@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added support for mcp rm command to remove mcp servers
+- Added support for `mcp rm` command to remove mcp servers
+- Added support for `mcp list` command to show configured mcp servers
 
 
 ## [0.0.9] - 2025-11-01

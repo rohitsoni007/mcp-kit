@@ -10,18 +10,8 @@
 # ///
 """MCP Kit - A command-line tool for initializing MCP in agents.
 Usage:
-    # Global configuration (default)
-    uvx mcp-cli.py init
-    
-    # Project-specific configuration
-    uvx mcp-cli.py init <project-name>
-    uvx mcp-cli.py init .
-
-Or install globally:
-    uv tool install --from mcp-cli.py mcp-cli
-    mcp init                    # Global configuration
-    mcp init <project-name>     # Project-specific
-    mcp init .                  # Current directory
+    uv venv
+    ./.venv-new/Scripts/Activate.ps1
 """
 
 __version__ = "0.0.9"
@@ -1285,6 +1275,163 @@ def remove_servers_from_config(config: Dict[str, Any], servers_to_remove: List[s
                 not_found_servers.append(server_name)
     
     return config, removed_servers, not_found_servers
+
+@app.command("list")
+def list_servers(
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to list servers for (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path (use '.' for current directory, omit for global configuration)"),
+):
+    """List configured MCP servers."""
+    show_banner()
+    
+    # Determine if this is global configuration
+    is_global = project_path is None
+    
+    if is_global:
+        console.print(Panel(
+            Align.center(Text("Global MCP Configuration", style="bold yellow")),
+            title="[bold cyan]List Mode[/bold cyan]",
+            border_style="yellow",
+            padding=(0, 1),
+            height=3
+        ))
+        console.print()
+        target_path = None
+    else:
+        working_directory = Path.cwd()
+        if project_path == ".":
+            target_path = working_directory
+        else:
+            target_path = working_directory / project_path
+            
+        if not target_path.exists():
+            console.print(f"[red]Project directory does not exist: {target_path}[/red]")
+            raise typer.Exit(1)
+        
+        console.print(Panel(
+            Align.center(Text(f"Project: {project_path}", style="bold yellow")),
+            title="[bold cyan]List Mode[/bold cyan]",
+            border_style="yellow",
+            padding=(0, 1),
+            height=3
+        ))
+        console.print()
+    
+    # Select agent if not provided
+    if not agent:
+        agent = select_agent()
+        if not agent:
+            console.print("[red]No agent selected. Exiting.[/red]")
+            raise typer.Exit(1)
+    
+    if agent not in AGENT_CONFIG:
+        console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+        raise typer.Exit(1)
+    
+    console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
+    
+    # Get configuration path
+    if is_global or agent == "qoder" or agent == "lmstudio":
+        config_path = get_mcp_config_path(agent)
+    else:
+        config_path = get_mcp_config_path(agent, target_path)
+    
+    console.print(f"[dim]Configuration path: {config_path}[/dim]")
+    console.print()
+    
+    # Load existing configuration
+    existing_config = load_existing_mcp_config(config_path, agent)
+    if not existing_config:
+        console.print(f"[yellow]No MCP configuration found at: {config_path}[/yellow]")
+        console.print("[dim]Run 'mcp init' to create a new configuration.[/dim]")
+        raise typer.Exit(0)
+    
+    # Get list of configured servers
+    configured_servers = list_configured_servers(existing_config, agent)
+    if not configured_servers:
+        console.print("[yellow]No MCP servers are currently configured.[/yellow]")
+        console.print("[dim]Run 'mcp init' to add MCP servers.[/dim]")
+        raise typer.Exit(0)
+    
+    # Download available servers to get rich display data
+    available_servers = download_mcp_servers()
+    if not available_servers:
+        console.print("[yellow]Could not download server information. Using basic display.[/yellow]")
+        available_servers = []
+    
+    # Match configured servers with available server data
+    matched_servers = []
+    for configured_name in configured_servers:
+        # Find matching server in available_servers list
+        matched_server = None
+        for server in available_servers:
+            server_mcp = server.get("mcp", {})
+            # Check if any key in the mcp dict matches the configured server name
+            for mcp_key in server_mcp.keys():
+                if mcp_key == configured_name or mcp_key.endswith('/' + configured_name.split('/')[-1]):
+                    matched_server = {
+                        'name': server['name'],
+                        'by': server.get('by', 'Unknown'),
+                        'stargazer_count': server.get('stargazer_count', 0),
+                        'configured_name': configured_name,
+                        'mcp_key': mcp_key,
+                        'description': server.get('description', 'No description available')
+                    }
+                    break
+            if matched_server:
+                break
+        
+        # If no match found, create a basic entry
+        if not matched_server:
+            matched_server = {
+                'name': configured_name.split('/')[-1].title(),
+                'by': 'Unknown',
+                'stargazer_count': 0,
+                'configured_name': configured_name,
+                'mcp_key': configured_name,
+                'description': 'No description available'
+            }
+        
+        matched_servers.append(matched_server)
+    
+    # Display servers in the same format as mcp init (Server, By, Stars)
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_column("Server", style="white", min_width=20)
+    table.add_column("By", style="dim", width=28)
+    table.add_column("Stars", style="dim", width=10)
+    
+    for server in matched_servers:
+        # Get by (author/organization) field with "By " prefix
+        by_org = server.get('by', 'Unknown')
+        # Truncate long organization names to fit in column
+        if len(by_org) > 20:
+            by_org = by_org[:20] + "..."
+        by_text = f"By: {by_org}"
+        
+        # Get stargazer_count and format it with unfilled star icon
+        stars = server.get('stargazer_count', 0)
+        if stars >= 1000:
+            stars_text = f"☆ {stars/1000:.1f}k"
+        else:
+            stars_text = f"☆ {stars}"
+        
+        table.add_row(
+            Text(server['name'], style="cyan"),
+            Text(by_text, style="dim"),
+            Text(stars_text, style="dim")
+        )
+    
+    # Wrap table in a panel
+    panel = Panel(
+        table,
+        title=f"[bold cyan]Configured MCP Servers ({len(configured_servers)})[/bold cyan]",
+        border_style="cyan",
+        padding=(1, 2)
+    )
+    
+    console.print(panel)
+    
+
 
 @app.command()
 def rm(

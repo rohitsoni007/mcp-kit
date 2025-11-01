@@ -25,12 +25,12 @@ MCP Gearbox is a powerful Python CLI dev-tools package that provides an interact
 ### Using uv (recommended)
 
 ```bash
-uv tool install mcp-cli --from git+https://github.com/rohitsoni007/mcp-kit
+uv tool install mcp-gearbox --from git+https://github.com/rohitsoni007/mcp-kit
 ```
 
 ### To upgrade mcp-cli run:
 ```bash
-uv tool install mcp-cli --force --from git+https://github.com/rohitsoni007/mcp-kit
+uv tool install mcp-gearbox --force --from git+https://github.com/rohitsoni007/mcp-kit
 ```
 
 ### Using uvx (one-time execution)

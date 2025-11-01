@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="./media/logo1.png" alt="MCP Gearbox Logo"/>
+    <img src="./media/logo.png" alt="MCP Gearbox Logo"/>
     <h1>MCP Gearbox</h1>
     <h3><em>Setup high-quality MCP servers faster.</em></h3>
 </div>

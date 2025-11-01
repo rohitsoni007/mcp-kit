@@ -475,6 +475,353 @@ def select_agent(project_info: Optional[Dict[str, str]] = None) -> Optional[str]
             # Handle any readchar exceptions gracefully
             continue
 
+def select_servers_to_remove(configured_servers: List[str], available_servers: List[Dict[str, Any]], agent: str, project_info: Optional[Dict[str, str]] = None) -> Optional[List[str]]:
+    """Interactive server selection for removal with keyboard navigation, table format, and pagination."""
+    
+    # Match configured servers with available server data
+    matched_servers = []
+    for configured_name in configured_servers:
+        # Find matching server in available_servers list
+        matched_server = None
+        for server in available_servers:
+            server_mcp = server.get("mcp", {})
+            # Check if any key in the mcp dict matches the configured server name
+            for mcp_key in server_mcp.keys():
+                if mcp_key == configured_name or mcp_key.endswith('/' + configured_name.split('/')[-1]):
+                    matched_server = {
+                        'name': server['name'],
+                        'by': server.get('by', 'Unknown'),
+                        'stargazer_count': server.get('stargazer_count', 0),
+                        'configured_name': configured_name,
+                        'mcp_key': mcp_key
+                    }
+                    break
+            if matched_server:
+                break
+        
+        # If no match found, create a basic entry
+        if not matched_server:
+            matched_server = {
+                'name': configured_name.split('/')[-1].title(),
+                'by': 'Unknown',
+                'stargazer_count': 0,
+                'configured_name': configured_name,
+                'mcp_key': configured_name
+            }
+        
+        matched_servers.append(matched_server)
+    
+    selected_indices = set()
+    current_index = 0
+    current_page = 0
+    items_per_page = 10  # Show 10 servers per page
+    search_query = ""
+    filtered_servers = matched_servers.copy()
+    original_to_filtered_mapping = {i: i for i in range(len(matched_servers))}  # Maps original indices to filtered indices
+    
+    def filter_servers():
+        """Filter servers based on search query."""
+        nonlocal filtered_servers, original_to_filtered_mapping, current_index, current_page
+        
+        if not search_query.strip():
+            filtered_servers = matched_servers.copy()
+            original_to_filtered_mapping = {i: i for i in range(len(matched_servers))}
+        else:
+            query_lower = search_query.lower()
+            filtered_servers = []
+            original_to_filtered_mapping = {}
+            
+            for i, server in enumerate(matched_servers):
+                # Search in name and by (organization/author)
+                name_match = query_lower in server['name'].lower()
+                by_match = query_lower in server.get('by', '').lower()
+                
+                if name_match or by_match:
+                    filtered_index = len(filtered_servers)
+                    original_to_filtered_mapping[i] = filtered_index
+                    filtered_servers.append(server)
+        
+        # Reset pagination and selection after filtering
+        current_index = 0
+        current_page = 0
+    
+    def get_page_items():
+        """Get items for the current page."""
+        start_idx = current_page * items_per_page
+        end_idx = min(start_idx + items_per_page, len(filtered_servers))
+        return filtered_servers[start_idx:end_idx], start_idx, end_idx
+    
+    def get_total_pages():
+        """Calculate total number of pages."""
+        return (len(filtered_servers) + items_per_page - 1) // items_per_page
+    
+    def get_original_index(filtered_index):
+        """Get the original server index from filtered index."""
+        for orig_idx, filt_idx in original_to_filtered_mapping.items():
+            if filt_idx == filtered_index:
+                return orig_idx
+        return filtered_index
+    
+    def render_server_table():
+        """Render the MCP server removal interface using a table with pagination."""
+        try:
+            console.clear()
+        except Exception:
+            # Fallback if clear doesn't work
+            console.print("\n" * 50)
+        
+        # Show banner
+        show_banner()
+        
+        # Show project info if provided
+        if project_info:
+            setup_table = Table(show_header=False, box=None, padding=(0, 1))
+            setup_table.add_column("Label", style="cyan", width=18)
+            setup_table.add_column("Path", style="white")
+            
+            setup_table.add_row("Project:", project_info["project_name"])
+            setup_table.add_row("Working Path:", project_info["working_directory"])
+            setup_table.add_row("Target Path:", project_info["target_directory"])
+            
+            setup_panel = Panel(
+                setup_table,
+                title="[bold cyan]Project Setup[/bold cyan]",
+                border_style="cyan",
+                padding=(1, 2)
+            )
+            
+            console.print(setup_panel)
+            console.print()
+        
+        # Show selected agent with border
+        agent_content = f"🤖 {agent} ({AGENT_CONFIG[agent]['name']})"
+        agent_panel = Panel(
+            Align.center(Text(agent_content, style="bold green")),
+            title="[bold cyan]Selected Agent[/bold cyan]",
+            border_style="green",
+            padding=(0, 1),
+            height=3
+        )
+        console.print(agent_panel)
+        console.print()
+        
+        # Show search box with border
+        if search_query:
+            search_content = f"🔍 {search_query}"
+            search_style = "bold yellow"
+            border_style = "yellow"
+        else:
+            search_content = "🔍 (type to filter servers)"
+            search_style = "dim"
+            border_style = "dim"
+        
+        search_panel = Panel(
+            Align.center(Text(search_content, style=search_style)),
+            title="[bold cyan]Search[/bold cyan]" if search_query else "[dim]Search[/dim]",
+            border_style=border_style,
+            padding=(0, 1),
+            height=3
+        )
+        console.print(search_panel)
+        console.print()
+        
+        # Get current page items
+        page_items, start_idx, end_idx = get_page_items()
+        total_pages = get_total_pages()
+        
+        # Create table
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Selector", style="cyan", width=3)
+        table.add_column("Checkbox", style="white", width=3)
+        table.add_column("Server", style="white", min_width=20)
+        table.add_column("By", style="dim", width=28)
+        table.add_column("Stars", style="dim", width=10)
+        
+        # Add rows to table for current page
+        for i, server in enumerate(page_items):
+            filtered_index = start_idx + i
+            original_index = get_original_index(filtered_index)
+            
+            if filtered_index == current_index:
+                # Highlighted selection
+                selector = "▶"
+                checkbox_style = "bold cyan"
+                server_style = "bold cyan"
+                desc_style = "cyan"
+            else:
+                # Normal item
+                selector = " "
+                if original_index in selected_indices:
+                    checkbox_style = "bright_red"
+                    server_style = "bright_red"
+                    desc_style = "red"
+                else:
+                    checkbox_style = "white"
+                    server_style = "white"
+                    desc_style = "dim"
+            
+            checkbox = "☑" if original_index in selected_indices else "☐"
+            
+            # Get by (author/organization) field with "By " prefix
+            by_org = server.get('by', 'Unknown')
+            # Truncate long organization names to fit in column
+            if len(by_org) > 20:
+                by_org = by_org[:20] + "..."
+            by_text = f"By: {by_org}"
+            
+            # Get stargazer_count and format it with unfilled star icon
+            stars = server.get('stargazer_count', 0)
+            if stars >= 1000:
+                stars_text = f"☆ {stars/1000:.1f}k"
+            else:
+                stars_text = f"☆ {stars}"
+            
+            table.add_row(
+                Text(selector, style="cyan"),
+                Text(checkbox, style=checkbox_style),
+                Text(server['name'], style=server_style),
+                Text(by_text, style=desc_style),
+                Text(stars_text, style=desc_style)
+            )
+        
+        # Create status info for the panel subtitle
+        selected_count = len(selected_indices)
+        status_info = f"Selected: {selected_count} server{'s' if selected_count != 1 else ''} for removal"
+        
+        if total_pages > 1:
+            status_info += f" | Page {current_page + 1} of {total_pages} | Showing {start_idx + 1}-{end_idx} of {len(filtered_servers)}"
+        
+        if search_query and len(filtered_servers) != len(matched_servers):
+            status_info += f" | Filtered: {len(filtered_servers)}/{len(matched_servers)}"
+        
+        # Wrap table in a panel with border
+        panel = Panel(
+            table,
+            title="[bold red]Choose MCP servers to remove:[/bold red]",
+            subtitle=f"[bold yellow]{status_info}[/bold yellow]",
+            border_style="red",
+            padding=(1, 2)
+        )
+        
+        console.print(panel)
+        console.print()
+        
+        # Help text
+        help_lines = [
+            "Use ↑/↓ to navigate, Space to toggle, Enter to confirm, Esc to cancel",
+            "Type to search/filter servers, Backspace to delete search, Delete to clear search"
+        ]
+        
+        if total_pages > 1:
+            help_lines.append("Use ←/→ or PgUp/PgDn to change pages")
+        
+        help_lines.append("Ctrl+A=select all, Ctrl+N=select none")
+        
+        for line in help_lines:
+            console.print(Text(line, style="dim"))
+    
+    # Initial render
+    render_server_table()
+    
+    while True:
+        try:
+            # Read a single character
+            key = readchar.readkey()
+            
+            if key == readchar.key.UP:
+                if current_index > 0:
+                    current_index -= 1
+                    # Check if we need to go to previous page
+                    if current_index < current_page * items_per_page and current_page > 0:
+                        current_page -= 1
+                else:
+                    # Wrap to last item
+                    current_index = len(filtered_servers) - 1
+                    current_page = get_total_pages() - 1
+                render_server_table()
+                
+            elif key == readchar.key.DOWN:
+                if current_index < len(filtered_servers) - 1:
+                    current_index += 1
+                    # Check if we need to go to next page
+                    if current_index >= (current_page + 1) * items_per_page:
+                        current_page += 1
+                else:
+                    # Wrap to first item
+                    current_index = 0
+                    current_page = 0
+                render_server_table()
+                
+            elif key == readchar.key.LEFT or key == readchar.key.PAGE_UP:
+                if current_page > 0:
+                    current_page -= 1
+                    current_index = current_page * items_per_page
+                    render_server_table()
+                    
+            elif key == readchar.key.RIGHT or key == readchar.key.PAGE_DOWN:
+                if current_page < get_total_pages() - 1:
+                    current_page += 1
+                    current_index = current_page * items_per_page
+                    render_server_table()
+                    
+            elif key == ' ':  # Space to toggle selection
+                original_index = get_original_index(current_index)
+                if original_index in selected_indices:
+                    selected_indices.remove(original_index)
+                else:
+                    selected_indices.add(original_index)
+                render_server_table()
+                
+            elif key == readchar.key.ENTER or key == '\r' or key == '\n':
+                if selected_indices:
+                    return [matched_servers[i]['configured_name'] for i in sorted(selected_indices)]
+                else:
+                    # If nothing selected, select the current one
+                    original_index = get_original_index(current_index)
+                    return [matched_servers[original_index]['configured_name']]
+                    
+            elif key == readchar.key.ESC or key == '\x1b':
+                return None
+                
+            elif key.lower() == 'q':
+                return []
+                
+            elif key == '\x01':  # Ctrl+A to select all (filtered servers)
+                for filtered_idx in range(len(filtered_servers)):
+                    original_idx = get_original_index(filtered_idx)
+                    selected_indices.add(original_idx)
+                render_server_table()
+                
+            elif key == '\x0e':  # Ctrl+N to select none
+                selected_indices.clear()
+                render_server_table()
+                
+            elif key == readchar.key.BACKSPACE or key == '\b' or key == '\x7f':  # Backspace
+                if search_query:
+                    search_query = search_query[:-1]
+                    filter_servers()
+                    render_server_table()
+                    
+            elif key == readchar.key.DELETE or key == readchar.key.SUPR:  # Delete key to clear search
+                if search_query:
+                    search_query = ""
+                    filter_servers()
+                    render_server_table()
+                    
+            elif key == '\x03':  # Ctrl+C to exit
+                return None  # Return None to indicate cancellation
+                    
+            elif len(key) == 1 and key.isprintable():  # Regular character input for search
+                search_query += key
+                filter_servers()
+                render_server_table()
+                
+        except KeyboardInterrupt:
+            return None
+        except Exception:
+            # Handle any readchar exceptions gracefully
+            continue
+
 def select_mcp_servers(servers: List[Dict[str, Any]], agent: str, project_info: Optional[Dict[str, str]] = None) -> Optional[List[Dict[str, Any]]]:
     """Interactive MCP server selection with keyboard navigation, table format, pagination, and search filtering."""
     selected_indices = set()
@@ -877,6 +1224,234 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
         return False
 
 
+
+def load_existing_mcp_config(config_path: Path, agent: str) -> Dict[str, Any]:
+    """Load existing MCP configuration from the specified path."""
+    if not config_path.exists():
+        return {}
+    
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        console.print(f"[red]Error reading configuration: {e}[/red]")
+        return {}
+
+def list_configured_servers(config: Dict[str, Any], agent: str) -> List[str]:
+    """List all configured MCP servers from the configuration."""
+    if agent == "copilot":
+        return list(config.get("servers", {}).keys())
+    else:
+        return list(config.get("mcpServers", {}).keys())
+
+def remove_servers_from_config(config: Dict[str, Any], servers_to_remove: List[str], agent: str) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    """Remove specified servers from configuration. Returns updated config, removed servers, and not found servers."""
+    removed_servers = []
+    not_found_servers = []
+    
+    if agent == "copilot":
+        servers_dict = config.get("servers", {})
+    else:
+        servers_dict = config.get("mcpServers", {})
+    
+    for server_name in servers_to_remove:
+        # First try exact match
+        if server_name in servers_dict:
+            del servers_dict[server_name]
+            removed_servers.append(server_name)
+        else:
+            # Try partial matching - look for servers that end with the given name
+            # This allows "fetch" to match "modelcontextprotocol/fetch"
+            matches = []
+            for full_name in servers_dict.keys():
+                # Check if the server name ends with the given name (after a slash)
+                if full_name.endswith('/' + server_name) or full_name == server_name:
+                    matches.append(full_name)
+            
+            if len(matches) == 1:
+                # Single match found, remove it
+                full_name = matches[0]
+                del servers_dict[full_name]
+                removed_servers.append(full_name)
+            elif len(matches) > 1:
+                # Multiple matches found, this is ambiguous
+                console.print(f"[yellow]Ambiguous server name '{server_name}'. Multiple matches found:[/yellow]")
+                for match in matches:
+                    console.print(f"  • {match}")
+                console.print(f"[yellow]Please use the full server name to specify which one to remove.[/yellow]")
+                not_found_servers.append(server_name)
+            else:
+                # No matches found
+                not_found_servers.append(server_name)
+    
+    return config, removed_servers, not_found_servers
+
+@app.command()
+def rm(
+    servers: Optional[List[str]] = typer.Argument(None, help="MCP server names to remove (e.g., 'git', 'filesystem')"),
+    all_servers: bool = typer.Option(False, "--all", "-A", help="Remove all MCP servers"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path (use '.' for current directory, omit for global configuration)"),
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompts"),
+):
+    """Remove MCP servers from configuration."""
+    show_banner()
+    
+    # Determine if this is global configuration
+    is_global = project_path is None
+    
+    if is_global:
+        console.print(Panel(
+            Align.center(Text("Global MCP Configuration", style="bold yellow")),
+            title="[bold cyan]Remove Mode[/bold cyan]",
+            border_style="yellow",
+            padding=(0, 1),
+            height=3
+        ))
+        console.print()
+        target_path = None
+    else:
+        working_directory = Path.cwd()
+        if project_path == ".":
+            target_path = working_directory
+        else:
+            target_path = working_directory / project_path
+            
+        if not target_path.exists():
+            console.print(f"[red]Project directory does not exist: {target_path}[/red]")
+            raise typer.Exit(1)
+        
+        console.print(Panel(
+            Align.center(Text(f"Project: {project_path}", style="bold yellow")),
+            title="[bold cyan]Remove Mode[/bold cyan]",
+            border_style="yellow",
+            padding=(0, 1),
+            height=3
+        ))
+        console.print()
+    
+    # Select agent if not provided
+    if not agent:
+        agent = select_agent()
+        if not agent:
+            console.print("[red]No agent selected. Exiting.[/red]")
+            raise typer.Exit(1)
+    
+    if agent not in AGENT_CONFIG:
+        console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+        raise typer.Exit(1)
+    
+    console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
+    
+    # Get configuration path
+    if is_global or agent == "qoder" or agent == "lmstudio":
+        config_path = get_mcp_config_path(agent)
+    else:
+        config_path = get_mcp_config_path(agent, target_path)
+    
+    # Load existing configuration
+    existing_config = load_existing_mcp_config(config_path, agent)
+    if not existing_config:
+        console.print(f"[yellow]No MCP configuration found at: {config_path}[/yellow]")
+        raise typer.Exit(0)
+    
+    # Get list of configured servers
+    configured_servers = list_configured_servers(existing_config, agent)
+    if not configured_servers:
+        console.print("[yellow]No MCP servers are currently configured.[/yellow]")
+        raise typer.Exit(0)
+    
+    console.print(f"\n[cyan]Currently configured servers ({len(configured_servers)}):[/cyan]")
+    for server in configured_servers:
+        console.print(f"  • {server}")
+    console.print()
+    
+    # Determine which servers to remove
+    if all_servers:
+        servers_to_remove = configured_servers.copy()
+        if not force:
+            if not Confirm.ask(f"[bold red]Are you sure you want to remove ALL {len(servers_to_remove)} MCP servers?[/bold red]"):
+                console.print("[yellow]Operation cancelled.[/yellow]")
+                raise typer.Exit(0)
+    elif servers:
+        servers_to_remove = servers
+        if not force:
+            console.print(f"[yellow]Servers to remove: {', '.join(servers_to_remove)}[/yellow]")
+            if not Confirm.ask("Continue with removal?"):
+                console.print("[yellow]Operation cancelled.[/yellow]")
+                raise typer.Exit(0)
+    else:
+        # Interactive server selection for removal
+        # Download available servers to get rich display data
+        available_servers = download_mcp_servers()
+        if not available_servers:
+            console.print("[yellow]Could not download server information. Using basic display.[/yellow]")
+            available_servers = []
+        
+        # Prepare project info for display if in project mode
+        project_info = None
+        if not is_global:
+            project_info = {
+                "project_name": target_path.name if target_path else "current",
+                "working_directory": str(Path.cwd()),
+                "target_directory": str(target_path) if target_path else str(Path.cwd())
+            }
+        
+        selected_servers = select_servers_to_remove(configured_servers, available_servers, agent, project_info)
+        
+        if selected_servers is None:
+            console.print("[yellow]Server selection cancelled.[/yellow]")
+            raise typer.Exit(0)
+        if not selected_servers:
+            console.print("[yellow]No servers selected for removal.[/yellow]")
+            raise typer.Exit(0)
+        
+        servers_to_remove = selected_servers
+        
+        if not force:
+            console.print(f"[yellow]Selected servers to remove: {', '.join(servers_to_remove)}[/yellow]")
+            if not Confirm.ask("Continue with removal?"):
+                console.print("[yellow]Operation cancelled.[/yellow]")
+                raise typer.Exit(0)
+    
+    # Remove servers from configuration
+    updated_config, removed_servers, not_found_servers = remove_servers_from_config(
+        existing_config, servers_to_remove, agent
+    )
+    
+    # Report results
+    if removed_servers:
+        console.print(f"[green]✓ Successfully removed {len(removed_servers)} server(s):[/green]")
+        for server in removed_servers:
+            console.print(f"  • {server}")
+    
+    if not_found_servers:
+        console.print(f"[yellow]⚠ Could not find {len(not_found_servers)} server(s):[/yellow]")
+        for server in not_found_servers:
+            console.print(f"  • {server}")
+    
+    if not removed_servers:
+        console.print("[yellow]No servers were removed.[/yellow]")
+        raise typer.Exit(0)
+    
+    # Save updated configuration
+    try:
+        with open(config_path, 'w') as f:
+            json.dump(updated_config, f, indent=2)
+        console.print(f"\n[green]✓ Configuration updated: {config_path}[/green]")
+        
+        # Show remaining servers
+        remaining_servers = list_configured_servers(updated_config, agent)
+        if remaining_servers:
+            console.print(f"\n[cyan]Remaining servers ({len(remaining_servers)}):[/cyan]")
+            for server in remaining_servers:
+                console.print(f"  • {server}")
+        else:
+            console.print(f"\n[dim]No MCP servers remain in the configuration.[/dim]")
+            
+    except Exception as e:
+        console.print(f"[red]Failed to save configuration: {str(e)}[/red]")
+        raise typer.Exit(1)
 
 @app.command()
 def init(

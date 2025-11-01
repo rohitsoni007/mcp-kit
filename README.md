@@ -88,6 +88,7 @@ The `mcp` command supports the following options:
 | Command     | Description                                                    |
 |-------------|----------------------------------------------------------------|
 | `init`      | Initialize MCP configuration (supports both project-specific and global configuration) |
+| `rm`        | Remove MCP servers from configuration                         |
 
 ### `mcp init` Arguments & Options
 
@@ -95,6 +96,18 @@ The `mcp` command supports the following options:
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+
+### `mcp rm` Arguments & Options
+
+#### Arguments & Options
+
+| Argument/Option | Type     | Description                                                                  |
+|-----------------|----------|------------------------------------------------------------------------------|
+| `<servers>`     | Argument | MCP server names to remove (e.g., 'git', 'filesystem') - optional          |
+| `--all`, `-A`   | Option   | Remove all MCP servers                                                       |
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
+| `--force`, `-f` | Option   | Skip confirmation prompts                                                    |
 
 ### 🔧 Usage Examples
 
@@ -153,11 +166,73 @@ mcp init my-project -a gemini
 
 # Initialize MCP for Qoder AI agent in new project directory
 mcp init my-project -a qoder
+```
 
+#### `mcp rm` Examples
+
+```bash
+# Interactive MCP server removal (choose from configured servers)
+# Remove servers from global configuration
+mcp rm
+
+# Interactive removal for specific agent
+mcp rm -a copilot
+
+# Remove specific MCP servers from global configuration
+mcp rm git filesystem
+
+# Remove specific servers for GitHub Copilot AI agent
+mcp rm git filesystem -a copilot
+
+# Remove specific servers for Continue AI
+mcp rm git filesystem -a continue
+
+# Remove specific servers for Kiro AI agent
+mcp rm git filesystem -a kiro
+
+# Remove specific servers for Cursor AI agent
+mcp rm git filesystem -a cursor
+
+# Remove specific servers for Claude Code
+mcp rm git filesystem -a claude
+
+# Remove specific servers for Gemini CLI
+mcp rm git filesystem -a gemini
+
+# Remove all MCP servers from global configuration
+mcp rm --all
+
+# Remove all servers for specific agent
+mcp rm --all -a copilot
+
+# Interactive removal from current directory configuration
+mcp rm -p .
+
+# Interactive removal from specific project directory
+mcp rm -p my-project
+
+# Remove specific servers from current directory configuration
+mcp rm git filesystem -p .
+
+# Remove specific servers from specific project directory
+mcp rm git filesystem -p my-project
+
+# Remove all servers from project directory
+mcp rm --all -p my-project
+
+# Remove servers with force (skip confirmations)
+mcp rm git filesystem --force
+
+# Remove all servers with force
+mcp rm --all --force
+```
+
+#### General Examples
+
+```bash
 # Show version
 mcp --version
 mcp -v
-
 ```
 ## 📚 Features
 

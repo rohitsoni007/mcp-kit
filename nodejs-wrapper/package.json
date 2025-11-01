@@ -1,0 +1,47 @@
+{
+  "name": "mcp-cli",
+  "version": "0.0.8",
+  "description": "A command-line interface tool for MCP server management and project initialization",
+  "main": "index.js",
+  "bin": {
+    "mcp-cli": "./bin/mcp-cli.js",
+    "mcp": "./bin/mcp.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "project-initialization",
+    "ai-tools",
+    "python-wrapper"
+  ],
+  "author": "Rohit Soni",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rohitsoni007/mcp-kit.git"
+  },
+  "homepage": "https://github.com/rohitsoni007/mcp-kit",
+  "bugs": {
+    "url": "https://github.com/rohitsoni007/mcp-kit/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "dependencies": {
+    "cross-spawn": "^7.0.3",
+    "which": "^4.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}

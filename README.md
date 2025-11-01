@@ -17,16 +17,8 @@
 
 ## 🤔 Overview
 
-MCP Kit is a powerful Python CLI dev-tools package that provides an interactive way to discover, download, and configure Model Context Protocol (MCP) servers from the official [Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers) and [Github MCP Registry](https://github.com/mcp) ecosystem. This AI-powered tool automatically configures model-context-protocol servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
+MCP Kit is a powerful Python CLI dev-tools package that provides an interactive way to discover, download, and configure Model Context Protocol (MCP) servers from the official ecosystem. This AI-powered tool automatically configures model-context-protocol servers for your preferred AI coding agent with cross-platform support and intelligent configuration management.
 
-## Features
-
-- 🎯 Interactive AI agent selection and configuration
-- 📋 Interactive MCP server selection with intelligent filtering
-- 🔧 Automatic model-context-protocol configuration file generation
-- 🌍 Cross-platform Python dev-tools support (Windows, Linux, macOS)
-- 📁 Automatic AI agent configuration path detection
-- 🛠️ CLI-based workflow for seamless developer experience
 
 ## ⚡ Installation
 
@@ -64,7 +56,10 @@ uv sync
 | **[Continue](https://github.com/continuedev/continue)** | ✅ |  |
 | **[Kiro](https://kiro.dev)** | ✅ |  |
 | **[Cursor](https://cursor.sh)** | ✅ |  |
+| **[Claude Code](https://claude.ai)** | ✅ |  |
+| **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | ✅ |  |
 | **[Qoder](https://qoder.com)** | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
+| **[LM Studio](https://lmstudio.ai)** | ✅ | LM Studio does not need project-level MCP configuration |
 
 ## 🔧 MCP CLI Reference
 
@@ -81,8 +76,7 @@ The `mcp` command supports the following options:
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
-| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, or `qoder`  |
-| `--version`, `-v` | Option | Specific MCP server version to download (e.g., `v0.0.5`)                   |
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 
 ### 🔧 Usage Examples
 
@@ -106,11 +100,14 @@ mcp init -a cursor
 # Configure MCP globally for Qoder AI agent
 mcp init -a qoder
 
-# Specify MCP server version and AI agent for global configuration
-mcp init --version v0.0.5 --agent kiro
+# Configure MCP globally for Claude Code
+mcp init -a claude
 
-# Short form CLI command for quick global setup
-mcp init -v v0.0.5 -a cursor
+# Configure MCP globally for Gemini CLI
+mcp init -a gemini
+
+# Configure MCP globally for LM Studio AI agent
+mcp init -a lmstudio
 
 # Initialize MCP in current directory
 mcp init .
@@ -130,17 +127,33 @@ mcp init my-project -a kiro
 # Initialize MCP for Cursor AI agent in new project directory
 mcp init my-project -a cursor
 
+# Initialize MCP for Claude Code in new project directory
+mcp init my-project -a claude
+
+# Initialize MCP for Gemini CLI in new project directory
+mcp init my-project -a gemini
+
 # Initialize MCP for Qoder AI agent in new project directory
 mcp init my-project -a qoder
 
-# Initialize with specific agent and version
-mcp init my-project --agent kiro --version v0.0.5
-
-# Short form for project initialization
-mcp init . -a cursor -v v0.0.5
+# Show version
+mcp --version
+mcp -v
 
 ```
+## 📚 Features
 
+- 🎯 Interactive AI agent selection and configuration
+- 📋 Interactive MCP server selection with intelligent filtering
+- 🔧 Automatic model-context-protocol configuration file generation
+- 🌍 Cross-platform Python dev-tools support (Windows, Linux, macOS)
+- 📁 Automatic AI agent configuration path detection
+- 🛠️ CLI-based workflow for seamless developer experience
+
+## 🎯 Experimental Goals
+
+- **Common MCP server for all AI agents** - Unified configuration and management across different AI platforms
+- **Future edit feature** - Planned functionality to modify and update existing MCP configurations
 
 ## Development
 

@@ -71,11 +71,11 @@ def _github_auth_headers(cli_token: str | None = None) -> dict:
 
 # Agent configuration with name, folder, install URL, and CLI tool requirement
 AGENT_CONFIG = {
-    "copilot": {
-        "name": "GitHub Copilot",
-        "folder": ".github/",
-        "install_url": None,  # IDE-based, no CLI check needed
-        "requires_cli": False,
+    "claude": {
+        "name": "Claude Code",
+        "folder": ".claude/",
+        "install_url": "https://www.claude.com/product/claude-code",
+        "requires_cli": True,
     },
     "continue": {
         "name": "Continue",
@@ -83,16 +83,34 @@ AGENT_CONFIG = {
         "install_url": None,  # IDE-based, no CLI check needed
         "requires_cli": False,
     },
-    "kiro": {
-        "name": "Kiro",
-        "folder": ".kiro/",
-        "install_url": "https://kiro.dev",
+    "copilot": {
+        "name": "GitHub Copilot",
+        "folder": ".github/",
+        "install_url": None,  # IDE-based, no CLI check needed
         "requires_cli": False,
     },
     "cursor": {
         "name": "Cursor",
         "folder": ".cursor/",
         "install_url": "https://cursor.sh",
+        "requires_cli": False,
+    },
+    "gemini": {
+        "name": "Gemini CLI",
+        "folder": ".gemini/",
+        "install_url": "https://github.com/google-gemini/gemini-cli",
+        "requires_cli": True,
+    },
+    "kiro": {
+        "name": "Kiro",
+        "folder": ".kiro/",
+        "install_url": "https://kiro.dev",
+        "requires_cli": False,
+    },
+    "lmstudio": {
+        "name": "LM Studio",
+        "folder": ".lmstudio/",
+        "install_url": "https://lmstudio.ai",
         "requires_cli": False,
     },
     "qoder": {
@@ -124,6 +142,12 @@ class BannerGroup(TyperGroup):
         show_banner()
         super().format_help(ctx, formatter)
 
+def version_callback(value: bool):
+    """Handle version flag."""
+    if value:
+        console.print(__version__)
+        raise typer.Exit()
+
 app = typer.Typer(
     name="MCP-CLI",
     help="Setup tool for MCP for agents",
@@ -150,7 +174,7 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
     """Get the MCP configuration path based on the agent and operating system.
     
     Args:
-        agent: The agent to configure (copilot, continue, kiro, cursor, qoder)
+        agent: The agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)
         project_path: If provided, returns project-specific path instead of global path
     """
     if project_path:
@@ -167,8 +191,17 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
         elif agent == "cursor":
             # Cursor project: .cursor/mcp.json
             return project_path / ".cursor" / "mcp.json"
+        elif agent == "claude":
+            # Claude project: .mcp.json (for Claude Agent) or .claude/mcp.json (for Claude Code)
+            return project_path / ".mcp.json"
+        elif agent == "gemini":
+            # Gemini project: .gemini/settings.json
+            return project_path / ".gemini" / "settings.json"
         elif agent == "qoder":
             # Qoder does not support project-level configuration, use global path
+            return get_mcp_config_path(agent)
+        elif agent == "lmstudio":
+            # LM Studio does not support project-level configuration, use global path
             return get_mcp_config_path(agent)
     
     # Global/user-level paths (existing functionality)
@@ -181,6 +214,12 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
     elif agent == "cursor":
         # Cursor uses ~/.cursor/mcp.json
         return Path.home() / ".cursor" / "mcp.json"
+    elif agent == "claude":
+        # Claude uses ~/.claude.json (for Claude Agent) or ~/.claude/mcp.json (for Claude Code)
+        return Path.home() / ".claude.json"
+    elif agent == "gemini":
+        # Gemini uses ~/.gemini/settings.json
+        return Path.home() / ".gemini" / "settings.json"
     elif agent == "qoder":
         # Qoder uses ~/AppData/Roaming/Qoder/SharedClientCache/mcp.json on Windows
         system = platform.system().lower()
@@ -189,6 +228,9 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
         else:
             # For non-Windows systems, use a similar pattern in user config
             return Path.home() / ".config" / "Qoder" / "SharedClientCache" / "mcp.json"
+    elif agent == "lmstudio":
+        # LM Studio uses ~/.lmstudio/mcp.json
+        return Path.home() / ".lmstudio" / "mcp.json"
     
     # Default to Copilot configuration path
     system = platform.system().lower()
@@ -750,19 +792,26 @@ def create_mcp_config(selected_servers: List[Dict[str, Any]], agent: str) -> Dic
     """Create MCP configuration from selected servers based on agent format."""
     if agent == "copilot":
         # GitHub Copilot format: {"servers": {...}, "inputs": []}
+        # Keep gallery and version fields for copilot
         config = {"servers": {}, "inputs": []}
         
         for server in selected_servers:
             mcp_config = server.get("mcp", {})
-            # Copy the internal server data exactly as it is, just change the top-level key
+            # Copy the internal server data exactly as it is for copilot
             config["servers"].update(mcp_config)
     else:
-        # Continue, Kiro, Cursor, Qoder and other agents format: {"mcpServers": {...}}
+        # Continue, Kiro, Cursor, Qoder, LM Studio, Claude Agent and other agents format: {"mcpServers": {...}}
+        # Remove gallery and version fields for other agents
         config = {"mcpServers": {}}
         
         for server in selected_servers:
             mcp_config = server.get("mcp", {})
-            config["mcpServers"].update(mcp_config)
+            # Clean the server configuration by removing gallery and version fields
+            cleaned_config = {}
+            for server_key, server_data in mcp_config.items():
+                cleaned_server_data = {k: v for k, v in server_data.items() if k not in ["gallery", "version"]}
+                cleaned_config[server_key] = cleaned_server_data
+            config["mcpServers"].update(cleaned_config)
     
     return config
 
@@ -803,7 +852,7 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
                 console.print(f"  • {server}")
                 
         else:
-            # Continue, Kiro, Cursor, Qoder and other agents format
+            # Continue, Kiro, Cursor, Qoder, LM Studio, Claude Agent and other agents format
             if "mcpServers" not in existing_config:
                 existing_config["mcpServers"] = {}
             
@@ -832,8 +881,7 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Name of the project to initialize (use '.' for current directory, omit for global configuration)"),
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder)"),
-    version: str = typer.Option(None, "--version", "-v", help="Version to download (defaults to current package version)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
 ):
     """Initialize MCP configuration in a project directory or globally."""
     show_banner()
@@ -904,7 +952,7 @@ def init(
             console.print(f"[green]✓ Created project directory: {project_path}[/green]")
     
     # Download MCP servers
-    servers = download_mcp_servers(version)
+    servers = download_mcp_servers()
     if not servers:
         raise typer.Exit(1)
     
@@ -928,6 +976,22 @@ def init(
         console.print(f"[yellow]⚠️  Note: Qoder does not support project-level MCP configuration.[/yellow]")
         console.print(f"[yellow]   Configuration will be saved to global Qoder settings instead.[/yellow]")
         console.print()
+    elif agent == "lmstudio":
+        console.print(f"[yellow]⚠️  Note: LM Studio does not need project-level MCP configuration.[/yellow]")
+        console.print(f"[yellow]   Configuration will be saved to global LM Studio settings instead.[/yellow]")
+        console.print()
+    elif agent == "claude":
+        if is_global:
+            console.print(f"[cyan]ℹ️  Claude global configuration will be saved to ~/.claude.json[/cyan]")
+        else:
+            console.print(f"[cyan]ℹ️  Claude project configuration will be saved to .mcp.json[/cyan]")
+        console.print()
+    elif agent == "gemini":
+        if is_global:
+            console.print(f"[cyan]ℹ️  Gemini global configuration will be saved to ~/.gemini/settings.json[/cyan]")
+        else:
+            console.print(f"[cyan]ℹ️  Gemini project configuration will be saved to .gemini/settings.json[/cyan]")
+        console.print()
     
     # Select MCP servers
     selected_servers = select_mcp_servers(servers, agent, project_info)
@@ -944,7 +1008,7 @@ def init(
     config = create_mcp_config(selected_servers, agent)
     
     # Get configuration path based on mode (global vs project-specific)
-    if is_global or agent == "qoder":
+    if is_global or agent == "qoder" or agent == "lmstudio":
         config_path = get_mcp_config_path(agent)  # Global path
     else:
         config_path = get_mcp_config_path(agent, project_path)  # Project-specific path
@@ -953,7 +1017,6 @@ def init(
     if save_mcp_config(config, config_path, agent):
         if is_global:
             console.print(f"\n[bold green]🎉 MCP global configuration completed successfully![/bold green]")
-            console.print(f"[dim]Global configuration saved to: {config_path}[/dim]")
             
             # Show next steps for global configuration
             console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
@@ -969,13 +1032,14 @@ def init(
                 console.print(f"3. The configuration is available across all Cursor projects")
             elif agent == "qoder":
                 console.print(f"3. The configuration is available across all Qoder projects")
+            elif agent == "lmstudio":
+                console.print(f"3. The configuration is available across all LM Studio projects")
+            elif agent == "claude":
+                console.print(f"3. Use 'claude' command to start a new conversation")
+            elif agent == "gemini":
+                console.print(f"3. Use 'gemini' command to start a new conversation")
         else:
             console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
-            
-            if agent == "qoder":
-                console.print(f"[dim]Global configuration saved to: {config_path}[/dim]")
-            else:
-                console.print(f"[dim]Project configuration saved to: {config_path}[/dim]")
             
             # Show next steps for project configuration
             console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
@@ -984,6 +1048,9 @@ def init(
             if agent == "qoder":
                 console.print(f"2. The MCP servers will be loaded from global Qoder settings")
                 console.print(f"3. Open the project in Qoder IDE")
+            elif agent == "lmstudio":
+                console.print(f"2. The MCP servers will be loaded from global LM Studio settings")
+                console.print(f"3. Open the chat in LM Studio")
             else:
                 console.print(f"2. The MCP servers will be automatically loaded from: {config_path.relative_to(project_path)}")
                 if agent == "copilot":
@@ -994,13 +1061,24 @@ def init(
                     console.print(f"3. Open the project in Kiro IDE")
                 elif agent == "cursor":
                     console.print(f"3. Open the project in Cursor IDE")
+                elif agent == "lmstudio":
+                    console.print(f"3. Open the chat in LM Studio")
+                elif agent == "claude":
+                    console.print(f"3. Use 'claude' command in this project directory")
+                    console.print(f"4. The MCP servers will be automatically loaded from .mcp.json")
+                elif agent == "gemini":
+                    console.print(f"3. Use 'gemini' command in this project directory")
+                    console.print(f"4. The MCP servers will be automatically loaded from .gemini/settings.json")
     else:
         raise typer.Exit(1)
 
 @app.callback()
-def callback(ctx: typer.Context):
+def callback(
+    ctx: typer.Context,
+    version: Optional[bool] = typer.Option(None, "--version", "-v", callback=version_callback, is_eager=True, help="Show version and exit")
+):
     """Show banner when no subcommand is provided."""
-    if ctx.invoked_subcommand is None and "--help" not in sys.argv and "-h" not in sys.argv:
+    if ctx.invoked_subcommand is None and "--help" not in sys.argv and "-h" not in sys.argv and "--version" not in sys.argv and "-v" not in sys.argv:
         show_banner()
         console.print(Align.center("[dim]Run 'mcp --help' for usage information[/dim]"))
         console.print()

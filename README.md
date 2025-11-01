@@ -39,6 +39,24 @@ uv tool install mcp-cli --force --from git+https://github.com/rohitsoni007/mcp-k
 uvx --from git+https://github.com/rohitsoni007/mcp-kit mcp-cli
 ```
 
+### Using uv & pip
+
+```bash
+uv tool install mcp-gearbox
+```
+
+### Using npm
+
+```bash
+npm install -g mcp-gearbox
+```
+
+### Using pip
+
+```bash
+pip install mcp-gearbox
+```
+
 ### Development installation
 
 ```bash

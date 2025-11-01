@@ -90,6 +90,7 @@ The `mcp` command supports the following options:
 | `init`      | Initialize MCP configuration (supports both project-specific and global configuration) |
 | `list`      | List configured MCP servers                                   |
 | `rm`        | Remove MCP servers from configuration                         |
+| `check`     | Check which AI agents are installed on your system            |
 
 ### `mcp init` Arguments & Options
 
@@ -115,9 +116,18 @@ The `mcp` command supports the following options:
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
 | `--force`, `-f` | Option   | Skip confirmation prompts                                                    |
 
+### `mcp check` Arguments & Options
+
+| Argument/Option | Type     | Description                                                                  |
+|-----------------|----------|------------------------------------------------------------------------------|
+| `--agent`, `-a` | Option   | Specific agent to check: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+
 ### 🔧 Usage Examples
 
 ```bash
+# Check which AI agents are installed on your system
+mcp check
+
 # Interactive Model Context Protocol server selection (choose from available AI agents)
 # Configure MCP globally
 mcp init
@@ -260,6 +270,29 @@ mcp rm git filesystem --force
 mcp rm --all --force
 ```
 
+#### `mcp check` Examples
+
+```bash
+# Check all AI agents installation status
+mcp check
+
+# Check specific agent installation status
+mcp check -a copilot
+mcp check -a continue
+mcp check -a kiro
+mcp check -a cursor
+mcp check -a claude
+mcp check -a gemini
+mcp check -a qoder
+mcp check -a lmstudio
+
+# Check all agents installation status
+mcp check
+
+# Check specific agent installation status
+mcp check -a continue
+```
+
 #### General Examples
 
 ```bash
@@ -274,6 +307,7 @@ mcp -v
 - 🔧 Automatic model-context-protocol configuration file generation
 - 🌍 Cross-platform Python dev-tools support (Windows, Linux, macOS)
 - 📁 Automatic AI agent configuration path detection
+- 🔍 System-wide AI agent installation detection and status checking
 - 🛠️ CLI-based workflow for seamless developer experience
 
 ## 🎯 Experimental Goals

@@ -11,6 +11,7 @@
 """MCP Kit - A command-line tool for initializing MCP in agents.
 Usage:
     uv venv
+    ./.venv/Scripts/Activate.ps1
     ./.venv-new/Scripts/Activate.ps1
 """
 
@@ -75,7 +76,7 @@ AGENT_CONFIG = {
     },
     "copilot": {
         "name": "GitHub Copilot",
-        "folder": ".github/",
+        "folder": ".vscode/",
         "install_url": None,  # IDE-based, no CLI check needed
         "requires_cli": False,
     },
@@ -1599,6 +1600,195 @@ def rm(
     except Exception as e:
         console.print(f"[red]Failed to save configuration: {str(e)}[/red]")
         raise typer.Exit(1)
+
+def check_agent_installation(agent_key: str, agent_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Check if an agent is installed on the system."""
+    result = {
+        "agent": agent_key,
+        "name": agent_config["name"],
+        "installed": False,
+        "config_exists": False,
+        "config_path": None,
+        "cli_available": False,
+        "install_url": agent_config.get("install_url"),
+        "details": []
+    }
+    
+    # Check for configuration folder/file
+    try:
+        config_path = get_mcp_config_path(agent_key)
+        result["config_path"] = str(config_path)
+        
+        # Check if config file exists
+        if config_path.exists():
+            result["config_exists"] = True
+            result["details"].append(f"Config found: {config_path}")
+        else:
+            result["details"].append(f"Config not found: {config_path}")
+        
+        # Check if parent directory exists (indicates agent might be installed)
+        if agent_config["folder"]:
+            # Check global agent folder
+            agent_folder = Path.home() / agent_config["folder"]
+            if agent_folder.exists():
+                result["installed"] = True
+                result["details"].append(f"Agent folder found: {agent_folder}")
+            else:
+                result["details"].append(f"Agent folder not found: {agent_folder}")
+    except Exception as e:
+        result["details"].append(f"Error checking config: {str(e)}")
+    
+    # Check CLI availability if required
+    if agent_config.get("requires_cli", False):
+        try:
+            # Try to run the CLI command to check if it's available
+            cli_commands = {
+                "claude": ["claude", "--version"],
+                "gemini": ["gemini", "--version"],
+            }
+            
+            if agent_key in cli_commands:
+                try:
+                    # On Windows, some CLI tools might be PowerShell scripts
+                    # Try direct execution first, then PowerShell if that fails
+                    cmd = cli_commands[agent_key]
+                    
+                    try:
+                        result_cmd = subprocess.run(
+                            cmd, 
+                            capture_output=True, 
+                            text=True, 
+                            timeout=5
+                        )
+                        if result_cmd.returncode == 0:
+                            result["cli_available"] = True
+                            result["details"].append("CLI tool available")
+                        else:
+                            result["details"].append("CLI tool not available or not working")
+                    except FileNotFoundError:
+                        # If direct execution fails on Windows, try with PowerShell
+                        if platform.system().lower() == "windows":
+                            try:
+                                powershell_cmd = ["powershell", "-Command"] + cmd
+                                result_cmd = subprocess.run(
+                                    powershell_cmd,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=5
+                                )
+                                if result_cmd.returncode == 0:
+                                    result["cli_available"] = True
+                                    result["details"].append("CLI tool available (via PowerShell)")
+                                else:
+                                    result["details"].append("CLI tool not available or not working")
+                            except Exception:
+                                result["details"].append("CLI tool not found in PATH")
+                        else:
+                            result["details"].append("CLI tool not found in PATH")
+                            
+                except subprocess.TimeoutExpired:
+                    result["details"].append("CLI tool check timed out")
+        except Exception as e:
+            result["details"].append(f"Error checking CLI: {str(e)}")
+    else:
+        # For IDE-based agents, assume CLI is available if the agent folder exists
+        result["cli_available"] = result["installed"]
+    
+    # Overall installation status
+    if agent_config.get("requires_cli", False):
+        result["installed"] = result["cli_available"]
+    
+    return result
+
+@app.command()
+def check(
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Specific agent to check (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+):
+    """Check which AI agents are installed on your system."""
+    show_banner()
+    
+    console.print(Panel(
+        Align.center(Text("Agent Installation Check", style="bold yellow")),
+        title="[bold cyan]System Check[/bold cyan]",
+        border_style="yellow",
+        padding=(0, 1),
+        height=3
+    ))
+    console.print()
+    
+    # Check specific agent or all agents
+    if agent:
+        if agent not in AGENT_CONFIG:
+            console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+            raise typer.Exit(1)
+        agents_to_check = {agent: AGENT_CONFIG[agent]}
+    else:
+        agents_to_check = AGENT_CONFIG
+    
+    # Check each agent
+    results = []
+    with console.status("[bold green]Checking installed agents..."):
+        for agent_key, agent_config in agents_to_check.items():
+            result = check_agent_installation(agent_key, agent_config)
+            results.append(result)
+    
+    # Display results in a table
+    table = Table(show_header=True, box=None, padding=(0, 1))
+    table.add_column("Agent", style="white", min_width=15)
+    table.add_column("Status", style="white", width=12)
+    table.add_column("Config", style="white", width=8)
+    
+    installed_count = 0
+    configured_count = 0
+    
+    for result in results:
+        # Status column
+        if result["installed"]:
+            status = Text("✓ Installed", style="bold green")
+            installed_count += 1
+        else:
+            status = Text("✗ Not Found", style="bold red")
+        
+        # Config column  
+        if result["config_exists"]:
+            config_status = Text("✓ Yes", style="green")
+            configured_count += 1
+        else:
+            config_status = Text("✗ No", style="red")
+        
+        # Agent name with install URL if available
+        agent_name = result["name"]
+        if not result["installed"] and result["install_url"]:
+            agent_name = f"{agent_name} (install: {result['install_url']})"
+        
+        table.add_row(
+            Text(agent_name, style="cyan"),
+            status,
+            config_status
+        )
+    
+    # Wrap table in a panel
+    summary = f"Found {installed_count}/{len(results)} installed, {configured_count}/{len(results)} configured"
+    panel = Panel(
+        table,
+        title="[bold cyan]AI Agent Status[/bold cyan]",
+        subtitle=f"[bold yellow]{summary}[/bold yellow]",
+        border_style="cyan",
+        padding=(1, 2)
+    )
+    
+    console.print(panel)
+    console.print()
+    
+    if installed_count == 0:
+        console.print("[yellow]No AI agents found installed on your system.[/yellow]")
+        console.print("[dim]Install an agent and run 'mcp init' to get started with MCP servers.[/dim]")
+    elif configured_count == 0:
+        console.print("[yellow]No agents have MCP configuration yet.[/yellow]")
+        console.print("[dim]Run 'mcp init' to configure MCP servers for your installed agents.[/dim]")
+    else:
+        console.print(f"[green]You have {configured_count} agent(s) with MCP configuration.[/green]")
+        console.print("[dim]Run 'mcp list' to see configured servers or 'mcp init' to add more.[/dim]")
 
 @app.command()
 def init(

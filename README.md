@@ -56,7 +56,7 @@ uv sync
 | **[Continue](https://github.com/continuedev/continue)** | ✅ |  |
 | **[Kiro](https://kiro.dev)** | ✅ |  |
 | **[Cursor](https://cursor.sh)** | ✅ |  |
-| **[Claude Code](https://claude.ai)** | ✅ |  |
+| **[Claude Code](https://www.claude.com/product/claude-code)** | ✅ |  |
 | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | ✅ |  |
 | **[Qoder](https://qoder.com)** | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
 | **[LM Studio](https://lmstudio.ai)** | ✅ | LM Studio does not need project-level MCP configuration |

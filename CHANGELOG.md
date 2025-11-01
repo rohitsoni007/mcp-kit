@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Agents Alphabetically Ordered
 - Cleaner MCP server configuration removing gallery & version for agents other than copilot
 
-## [0.0.8] - 2025-10-31
+## [## [Unreleased]] - 2025-10-31
 
 ### Added
 - updated mutliple argument passing to **oraios/serena** or similar

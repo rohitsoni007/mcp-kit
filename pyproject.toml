@@ -9,7 +9,8 @@ description = "A command-line interface tool for MCP server management and proje
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [{ name = "Rohit Soni" }]
+authors = [{ name = "Rohit Soni", email = "rohitsoni007@gmail.com" }]
+maintainers = [{ name = "Rohit Soni", email = "rohitsoni007@gmail.com" }]
 keywords = [
     "mcp",
     "model-context-protocol",
@@ -21,10 +22,14 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
 
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
 ]
 
 dependencies = [

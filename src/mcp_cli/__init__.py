@@ -1918,7 +1918,7 @@ def check(
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Name of the project to initialize (use '.' for current directory, omit for global configuration)"),
-    servers: Optional[List[str]] = typer.Option(None, "--servers", "-s", help="MCP server names to add directly (e.g., 'git', 'filesystem')"),
+    servers: Optional[List[str]] = typer.Option(None, "--servers", "-s", help="MCP server names to add directly. Use multiple times (-s git -s filesystem) or space-separated (-s 'git filesystem')"),
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
 ):
@@ -2051,10 +2051,16 @@ def init(
     # Select MCP servers - either from command line arguments or interactive selection
     if servers:
         # Direct server specification via command line
+        # Handle both formats: -s git -s filesystem AND -s "git filesystem"
+        flattened_servers = []
+        for server_spec in servers:
+            # Split by spaces to handle "git filesystem" format
+            flattened_servers.extend(server_spec.split())
+        
         selected_servers = []
         not_found_servers = []
         
-        for server_name in servers:
+        for server_name in flattened_servers:
             # Find matching server in available_servers list
             matched_server = None
             for server in available_servers:

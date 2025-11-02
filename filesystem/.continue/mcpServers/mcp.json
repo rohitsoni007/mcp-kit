@@ -6,6 +6,14 @@
       "args": [
         "mcp-server-git"
       ]
+    },
+    "modelcontextprotocol/filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem"
+      ]
     }
   }
 }

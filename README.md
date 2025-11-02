@@ -97,7 +97,7 @@ The `mcp` command supports the following options:
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
-| `--servers`, `-s` | Option | MCP server names to add directly (e.g., 'git', 'filesystem') - optional    |
+| `--servers`, `-s` | Option | MCP server names to add directly. Use multiple times (-s git -s filesystem) or space-separated (-s "git filesystem") - optional |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 
@@ -162,16 +162,20 @@ mcp init -a gemini
 mcp init -a lmstudio
 
 # Add specific MCP servers directly without interactive selection
-mcp init -a copilot --servers git filesystem
+# Method 1: Space-separated in quotes
+mcp init -a copilot --servers "git filesystem"
+
+# Method 2: Multiple option flags
+mcp init -a copilot -s git -s filesystem
 
 # Add specific servers for Continue AI with JSON output
-mcp init -a continue --servers git filesystem --json
+mcp init -a continue --servers "git filesystem" --json
 
 # Add servers to current directory project
-mcp init . -a copilot --servers git filesystem
+mcp init . -a copilot --servers "git filesystem"
 
 # Add servers to new project directory
-mcp init my-project -a continue --servers git filesystem
+mcp init my-project -a continue -s git -s filesystem
 
 # Initialize MCP in current directory
 mcp init .

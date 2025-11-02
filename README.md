@@ -105,6 +105,7 @@ The `mcp` command supports the following options:
 |-----------------|----------|------------------------------------------------------------------------------|
 | `--agent`, `-a` | Option   | AI agent to list servers for: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 
 ### `mcp rm` Arguments & Options
 
@@ -115,12 +116,14 @@ The `mcp` command supports the following options:
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
 | `--force`, `-f` | Option   | Skip confirmation prompts                                                    |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 
 ### `mcp check` Arguments & Options
 
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `--agent`, `-a` | Option   | Specific agent to check: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 
 ### 🔧 Usage Examples
 
@@ -209,6 +212,14 @@ mcp list -p my-project
 
 # List servers for specific agent from project
 mcp list -a copilot -p my-project
+
+# Output in JSON format (useful for scripting and automation)
+mcp list -a continue --json
+mcp list -a continue -j
+
+# JSON output for project-specific configuration
+mcp list -a continue -p my-project --json
+mcp list -a continue -p my-project -j
 ```
 
 #### `mcp rm` Examples
@@ -268,6 +279,18 @@ mcp rm git filesystem --force
 
 # Remove all servers with force
 mcp rm --all --force
+
+# Output in JSON format (useful for scripting and automation)
+mcp rm git filesystem -a continue --json
+mcp rm git filesystem -a continue -j
+
+# Remove all servers with JSON output
+mcp rm --all -a continue --json
+mcp rm --all -a continue -j
+
+# Remove servers from project with JSON output
+mcp rm git filesystem -p my-project -a continue --json
+mcp rm git filesystem -p my-project -a continue -j
 ```
 
 #### `mcp check` Examples
@@ -286,11 +309,13 @@ mcp check -a gemini
 mcp check -a qoder
 mcp check -a lmstudio
 
-# Check all agents installation status
-mcp check
+# Output in JSON format (useful for scripting and automation)
+mcp check --json
+mcp check -j
 
-# Check specific agent installation status
-mcp check -a continue
+# Check specific agent with JSON output
+mcp check -a continue --json
+mcp check -a continue -j
 ```
 
 #### General Examples

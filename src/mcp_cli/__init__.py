@@ -1281,24 +1281,37 @@ def remove_servers_from_config(config: Dict[str, Any], servers_to_remove: List[s
 def list_servers(
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to list servers for (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path (use '.' for current directory, omit for global configuration)"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
 ):
     """List configured MCP servers."""
-    show_banner()
+    # Skip banner and UI for JSON output
+    if not json_output:
+        show_banner()
     
     # Determine if this is global configuration
     is_global = project_path is None
     
-    if is_global:
-        console.print(Panel(
-            Align.center(Text("Global MCP Configuration", style="bold yellow")),
-            title="[bold cyan]List Mode[/bold cyan]",
-            border_style="yellow",
-            padding=(0, 1),
-            height=3
-        ))
-        console.print()
-        target_path = None
-    else:
+    if not json_output:
+        if is_global:
+            console.print(Panel(
+                Align.center(Text("Global MCP Configuration", style="bold yellow")),
+                title="[bold cyan]List Mode[/bold cyan]",
+                border_style="yellow",
+                padding=(0, 1),
+                height=3
+            ))
+            console.print()
+        else:
+            console.print(Panel(
+                Align.center(Text(f"Project: {project_path}", style="bold yellow")),
+                title="[bold cyan]List Mode[/bold cyan]",
+                border_style="yellow",
+                padding=(0, 1),
+                height=3
+            ))
+            console.print()
+    
+    if not is_global:
         working_directory = Path.cwd()
         if project_path == ".":
             target_path = working_directory
@@ -1306,30 +1319,34 @@ def list_servers(
             target_path = working_directory / project_path
             
         if not target_path.exists():
-            console.print(f"[red]Project directory does not exist: {target_path}[/red]")
+            if json_output:
+                print(json.dumps({"error": f"Project directory does not exist: {target_path}"}, indent=2))
+            else:
+                console.print(f"[red]Project directory does not exist: {target_path}[/red]")
             raise typer.Exit(1)
-        
-        console.print(Panel(
-            Align.center(Text(f"Project: {project_path}", style="bold yellow")),
-            title="[bold cyan]List Mode[/bold cyan]",
-            border_style="yellow",
-            padding=(0, 1),
-            height=3
-        ))
-        console.print()
+    else:
+        target_path = None
     
     # Select agent if not provided
     if not agent:
+        if json_output:
+            print(json.dumps({"error": "Agent must be specified with --agent when using --json"}, indent=2))
+            raise typer.Exit(1)
         agent = select_agent()
         if not agent:
             console.print("[red]No agent selected. Exiting.[/red]")
             raise typer.Exit(1)
     
     if agent not in AGENT_CONFIG:
-        console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+        error_msg = f"Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}"
+        if json_output:
+            print(json.dumps({"error": error_msg}, indent=2))
+        else:
+            console.print(f"[red]{error_msg}[/red]")
         raise typer.Exit(1)
     
-    console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
+    if not json_output:
+        console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
     
     # Get configuration path
     if is_global or agent == "qoder" or agent == "lmstudio":
@@ -1337,26 +1354,33 @@ def list_servers(
     else:
         config_path = get_mcp_config_path(agent, target_path)
     
-    console.print(f"[dim]Configuration path: {config_path}[/dim]")
-    console.print()
+    if not json_output:
+        console.print(f"[dim]Configuration path: {config_path}[/dim]")
+        console.print()
     
     # Load existing configuration
     existing_config = load_existing_mcp_config(config_path, agent)
     if not existing_config:
-        console.print(f"[yellow]No MCP configuration found at: {config_path}[/yellow]")
-        console.print("[dim]Run 'mcp init' to create a new configuration.[/dim]")
+        if json_output:
+            print(json.dumps({"servers": [], "message": "No MCP configuration found"}, indent=2))
+        else:
+            console.print(f"[yellow]No MCP configuration found at: {config_path}[/yellow]")
+            console.print("[dim]Run 'mcp init' to create a new configuration.[/dim]")
         raise typer.Exit(0)
     
     # Get list of configured servers
     configured_servers = list_configured_servers(existing_config, agent)
     if not configured_servers:
-        console.print("[yellow]No MCP servers are currently configured.[/yellow]")
-        console.print("[dim]Run 'mcp init' to add MCP servers.[/dim]")
+        if json_output:
+            print(json.dumps({"servers": [], "message": "No MCP servers are currently configured"}, indent=2))
+        else:
+            console.print("[yellow]No MCP servers are currently configured.[/yellow]")
+            console.print("[dim]Run 'mcp init' to add MCP servers.[/dim]")
         raise typer.Exit(0)
     
     # Download available servers to get rich display data
     available_servers = download_mcp_servers()
-    if not available_servers:
+    if not available_servers and not json_output:
         console.print("[yellow]Could not download server information. Using basic display.[/yellow]")
         available_servers = []
     
@@ -1395,42 +1419,54 @@ def list_servers(
         
         matched_servers.append(matched_server)
     
-    # Display servers in the same format as mcp init (Server, By, Stars)
-    table = Table(show_header=False, box=None, padding=(0, 1))
-    table.add_column("Server", style="white", min_width=20)
-    table.add_column("By", style="dim", width=28)
-    table.add_column("Stars", style="dim", width=10)
-    
-    for server in matched_servers:
-        # Get by (author/organization) field with "By " prefix
-        by_org = server.get('by', 'Unknown')
-        # Truncate long organization names to fit in column
-        if len(by_org) > 20:
-            by_org = by_org[:20] + "..."
-        by_text = f"By: {by_org}"
+    # Output in JSON format or display table
+    if json_output:
+        # Output clean JSON without any UI elements
+        output_data = {
+            "agent": agent,
+            "agent_name": AGENT_CONFIG[agent]['name'],
+            "config_path": str(config_path),
+            "is_global": is_global,
+            "servers": matched_servers
+        }
+        print(json.dumps(output_data, indent=2))
+    else:
+        # Display servers in the same format as mcp init (Server, By, Stars)
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Server", style="white", min_width=20)
+        table.add_column("By", style="dim", width=28)
+        table.add_column("Stars", style="dim", width=10)
         
-        # Get stargazer_count and format it with unfilled star icon
-        stars = server.get('stargazer_count', 0)
-        if stars >= 1000:
-            stars_text = f"☆ {stars/1000:.1f}k"
-        else:
-            stars_text = f"☆ {stars}"
+        for server in matched_servers:
+            # Get by (author/organization) field with "By " prefix
+            by_org = server.get('by', 'Unknown')
+            # Truncate long organization names to fit in column
+            if len(by_org) > 20:
+                by_org = by_org[:20] + "..."
+            by_text = f"By: {by_org}"
+            
+            # Get stargazer_count and format it with unfilled star icon
+            stars = server.get('stargazer_count', 0)
+            if stars >= 1000:
+                stars_text = f"☆ {stars/1000:.1f}k"
+            else:
+                stars_text = f"☆ {stars}"
+            
+            table.add_row(
+                Text(server['name'], style="cyan"),
+                Text(by_text, style="dim"),
+                Text(stars_text, style="dim")
+            )
         
-        table.add_row(
-            Text(server['name'], style="cyan"),
-            Text(by_text, style="dim"),
-            Text(stars_text, style="dim")
+        # Wrap table in a panel
+        panel = Panel(
+            table,
+            title=f"[bold cyan]Configured MCP Servers ({len(configured_servers)})[/bold cyan]",
+            border_style="cyan",
+            padding=(1, 2)
         )
-    
-    # Wrap table in a panel
-    panel = Panel(
-        table,
-        title=f"[bold cyan]Configured MCP Servers ({len(configured_servers)})[/bold cyan]",
-        border_style="cyan",
-        padding=(1, 2)
-    )
-    
-    console.print(panel)
+        
+        console.print(panel)
     
 
 
@@ -1441,24 +1477,37 @@ def rm(
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path (use '.' for current directory, omit for global configuration)"),
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompts"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
 ):
     """Remove MCP servers from configuration."""
-    show_banner()
+    # Skip banner and UI for JSON output
+    if not json_output:
+        show_banner()
     
     # Determine if this is global configuration
     is_global = project_path is None
     
-    if is_global:
-        console.print(Panel(
-            Align.center(Text("Global MCP Configuration", style="bold yellow")),
-            title="[bold cyan]Remove Mode[/bold cyan]",
-            border_style="yellow",
-            padding=(0, 1),
-            height=3
-        ))
-        console.print()
-        target_path = None
-    else:
+    if not json_output:
+        if is_global:
+            console.print(Panel(
+                Align.center(Text("Global MCP Configuration", style="bold yellow")),
+                title="[bold cyan]Remove Mode[/bold cyan]",
+                border_style="yellow",
+                padding=(0, 1),
+                height=3
+            ))
+            console.print()
+        else:
+            console.print(Panel(
+                Align.center(Text(f"Project: {project_path}", style="bold yellow")),
+                title="[bold cyan]Remove Mode[/bold cyan]",
+                border_style="yellow",
+                padding=(0, 1),
+                height=3
+            ))
+            console.print()
+    
+    if not is_global:
         working_directory = Path.cwd()
         if project_path == ".":
             target_path = working_directory
@@ -1466,30 +1515,36 @@ def rm(
             target_path = working_directory / project_path
             
         if not target_path.exists():
-            console.print(f"[red]Project directory does not exist: {target_path}[/red]")
+            error_msg = f"Project directory does not exist: {target_path}"
+            if json_output:
+                print(json.dumps({"error": error_msg}, indent=2))
+            else:
+                console.print(f"[red]{error_msg}[/red]")
             raise typer.Exit(1)
-        
-        console.print(Panel(
-            Align.center(Text(f"Project: {project_path}", style="bold yellow")),
-            title="[bold cyan]Remove Mode[/bold cyan]",
-            border_style="yellow",
-            padding=(0, 1),
-            height=3
-        ))
-        console.print()
+        target_path = target_path
+    else:
+        target_path = None
     
     # Select agent if not provided
     if not agent:
+        if json_output:
+            print(json.dumps({"error": "Agent must be specified with --agent when using --json"}, indent=2))
+            raise typer.Exit(1)
         agent = select_agent()
         if not agent:
             console.print("[red]No agent selected. Exiting.[/red]")
             raise typer.Exit(1)
     
     if agent not in AGENT_CONFIG:
-        console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+        error_msg = f"Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}"
+        if json_output:
+            print(json.dumps({"error": error_msg}, indent=2))
+        else:
+            console.print(f"[red]{error_msg}[/red]")
         raise typer.Exit(1)
     
-    console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
+    if not json_output:
+        console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
     
     # Get configuration path
     if is_global or agent == "qoder" or agent == "lmstudio":
@@ -1500,35 +1555,48 @@ def rm(
     # Load existing configuration
     existing_config = load_existing_mcp_config(config_path, agent)
     if not existing_config:
-        console.print(f"[yellow]No MCP configuration found at: {config_path}[/yellow]")
+        error_msg = f"No MCP configuration found at: {config_path}"
+        if json_output:
+            print(json.dumps({"error": error_msg}, indent=2))
+        else:
+            console.print(f"[yellow]{error_msg}[/yellow]")
         raise typer.Exit(0)
     
     # Get list of configured servers
     configured_servers = list_configured_servers(existing_config, agent)
     if not configured_servers:
-        console.print("[yellow]No MCP servers are currently configured.[/yellow]")
+        error_msg = "No MCP servers are currently configured"
+        if json_output:
+            print(json.dumps({"error": error_msg}, indent=2))
+        else:
+            console.print(f"[yellow]{error_msg}.[/yellow]")
         raise typer.Exit(0)
     
-    console.print(f"\n[cyan]Currently configured servers ({len(configured_servers)}):[/cyan]")
-    for server in configured_servers:
-        console.print(f"  • {server}")
-    console.print()
+    if not json_output:
+        console.print(f"\n[cyan]Currently configured servers ({len(configured_servers)}):[/cyan]")
+        for server in configured_servers:
+            console.print(f"  • {server}")
+        console.print()
     
     # Determine which servers to remove
     if all_servers:
         servers_to_remove = configured_servers.copy()
-        if not force:
+        if not force and not json_output:
             if not Confirm.ask(f"[bold red]Are you sure you want to remove ALL {len(servers_to_remove)} MCP servers?[/bold red]"):
                 console.print("[yellow]Operation cancelled.[/yellow]")
                 raise typer.Exit(0)
     elif servers:
         servers_to_remove = servers
-        if not force:
+        if not force and not json_output:
             console.print(f"[yellow]Servers to remove: {', '.join(servers_to_remove)}[/yellow]")
             if not Confirm.ask("Continue with removal?"):
                 console.print("[yellow]Operation cancelled.[/yellow]")
                 raise typer.Exit(0)
     else:
+        if json_output:
+            print(json.dumps({"error": "Interactive server selection not supported with --json. Specify servers to remove or use --all"}, indent=2))
+            raise typer.Exit(1)
+        
         # Interactive server selection for removal
         # Download available servers to get rich display data
         available_servers = download_mcp_servers()
@@ -1567,38 +1635,63 @@ def rm(
         existing_config, servers_to_remove, agent
     )
     
-    # Report results
-    if removed_servers:
-        console.print(f"[green]✓ Successfully removed {len(removed_servers)} server(s):[/green]")
-        for server in removed_servers:
-            console.print(f"  • {server}")
-    
-    if not_found_servers:
-        console.print(f"[yellow]⚠ Could not find {len(not_found_servers)} server(s):[/yellow]")
-        for server in not_found_servers:
-            console.print(f"  • {server}")
-    
-    if not removed_servers:
-        console.print("[yellow]No servers were removed.[/yellow]")
-        raise typer.Exit(0)
-    
     # Save updated configuration
     try:
         with open(config_path, 'w') as f:
             json.dump(updated_config, f, indent=2)
-        console.print(f"\n[green]✓ Configuration updated: {config_path}[/green]")
         
-        # Show remaining servers
+        # Get remaining servers
         remaining_servers = list_configured_servers(updated_config, agent)
-        if remaining_servers:
-            console.print(f"\n[cyan]Remaining servers ({len(remaining_servers)}):[/cyan]")
-            for server in remaining_servers:
-                console.print(f"  • {server}")
+        
+        # Output results
+        if json_output:
+            # Output clean JSON without any UI elements
+            output_data = {
+                "agent": agent,
+                "agent_name": AGENT_CONFIG[agent]['name'],
+                "config_path": str(config_path),
+                "is_global": is_global,
+                "operation": "remove",
+                "requested_servers": servers_to_remove,
+                "removed_servers": removed_servers,
+                "not_found_servers": not_found_servers,
+                "remaining_servers": remaining_servers,
+                "total_removed": len(removed_servers),
+                "total_remaining": len(remaining_servers)
+            }
+            print(json.dumps(output_data, indent=2))
         else:
-            console.print(f"\n[dim]No MCP servers remain in the configuration.[/dim]")
+            # Report results with UI
+            if removed_servers:
+                console.print(f"[green]✓ Successfully removed {len(removed_servers)} server(s):[/green]")
+                for server in removed_servers:
+                    console.print(f"  • {server}")
+            
+            if not_found_servers:
+                console.print(f"[yellow]⚠ Could not find {len(not_found_servers)} server(s):[/yellow]")
+                for server in not_found_servers:
+                    console.print(f"  • {server}")
+            
+            if not removed_servers:
+                console.print("[yellow]No servers were removed.[/yellow]")
+                raise typer.Exit(0)
+            
+            console.print(f"\n[green]✓ Configuration updated: {config_path}[/green]")
+            
+            # Show remaining servers
+            if remaining_servers:
+                console.print(f"\n[cyan]Remaining servers ({len(remaining_servers)}):[/cyan]")
+                for server in remaining_servers:
+                    console.print(f"  • {server}")
+            else:
+                console.print(f"\n[dim]No MCP servers remain in the configuration.[/dim]")
             
     except Exception as e:
-        console.print(f"[red]Failed to save configuration: {str(e)}[/red]")
+        error_msg = f"Failed to save configuration: {str(e)}"
+        if json_output:
+            print(json.dumps({"error": error_msg}, indent=2))
+        else:
+            console.print(f"[red]{error_msg}[/red]")
         raise typer.Exit(1)
 
 def check_agent_installation(agent_key: str, agent_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -1703,23 +1796,30 @@ def check_agent_installation(agent_key: str, agent_config: Dict[str, Any]) -> Di
 @app.command()
 def check(
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Specific agent to check (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
 ):
     """Check which AI agents are installed on your system."""
-    show_banner()
-    
-    console.print(Panel(
-        Align.center(Text("Agent Installation Check", style="bold yellow")),
-        title="[bold cyan]System Check[/bold cyan]",
-        border_style="yellow",
-        padding=(0, 1),
-        height=3
-    ))
-    console.print()
+    # Skip banner and UI for JSON output
+    if not json_output:
+        show_banner()
+        
+        console.print(Panel(
+            Align.center(Text("Agent Installation Check", style="bold yellow")),
+            title="[bold cyan]System Check[/bold cyan]",
+            border_style="yellow",
+            padding=(0, 1),
+            height=3
+        ))
+        console.print()
     
     # Check specific agent or all agents
     if agent:
         if agent not in AGENT_CONFIG:
-            console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+            error_msg = f"Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}"
+            if json_output:
+                print(json.dumps({"error": error_msg}, indent=2))
+            else:
+                console.print(f"[red]{error_msg}[/red]")
             raise typer.Exit(1)
         agents_to_check = {agent: AGENT_CONFIG[agent]}
     else:
@@ -1727,68 +1827,84 @@ def check(
     
     # Check each agent
     results = []
-    with console.status("[bold green]Checking installed agents..."):
+    if json_output:
+        # Skip status display for JSON output
         for agent_key, agent_config in agents_to_check.items():
             result = check_agent_installation(agent_key, agent_config)
             results.append(result)
-    
-    # Display results in a table
-    table = Table(show_header=True, box=None, padding=(0, 1))
-    table.add_column("Agent", style="white", min_width=15)
-    table.add_column("Status", style="white", width=12)
-    table.add_column("Config", style="white", width=8)
-    
-    installed_count = 0
-    configured_count = 0
-    
-    for result in results:
-        # Status column
-        if result["installed"]:
-            status = Text("✓ Installed", style="bold green")
-            installed_count += 1
-        else:
-            status = Text("✗ Not Found", style="bold red")
-        
-        # Config column  
-        if result["config_exists"]:
-            config_status = Text("✓ Yes", style="green")
-            configured_count += 1
-        else:
-            config_status = Text("✗ No", style="red")
-        
-        # Agent name with install URL if available
-        agent_name = result["name"]
-        if not result["installed"] and result["install_url"]:
-            agent_name = f"{agent_name} (install: {result['install_url']})"
-        
-        table.add_row(
-            Text(agent_name, style="cyan"),
-            status,
-            config_status
-        )
-    
-    # Wrap table in a panel
-    summary = f"Found {installed_count}/{len(results)} installed, {configured_count}/{len(results)} configured"
-    panel = Panel(
-        table,
-        title="[bold cyan]AI Agent Status[/bold cyan]",
-        subtitle=f"[bold yellow]{summary}[/bold yellow]",
-        border_style="cyan",
-        padding=(1, 2)
-    )
-    
-    console.print(panel)
-    console.print()
-    
-    if installed_count == 0:
-        console.print("[yellow]No AI agents found installed on your system.[/yellow]")
-        console.print("[dim]Install an agent and run 'mcp init' to get started with MCP servers.[/dim]")
-    elif configured_count == 0:
-        console.print("[yellow]No agents have MCP configuration yet.[/yellow]")
-        console.print("[dim]Run 'mcp init' to configure MCP servers for your installed agents.[/dim]")
     else:
-        console.print(f"[green]You have {configured_count} agent(s) with MCP configuration.[/green]")
-        console.print("[dim]Run 'mcp list' to see configured servers or 'mcp init' to add more.[/dim]")
+        with console.status("[bold green]Checking installed agents..."):
+            for agent_key, agent_config in agents_to_check.items():
+                result = check_agent_installation(agent_key, agent_config)
+                results.append(result)
+    
+    # Count installed and configured agents
+    installed_count = sum(1 for result in results if result["installed"])
+    configured_count = sum(1 for result in results if result["config_exists"])
+    
+    # Output in JSON format or display table
+    if json_output:
+        # Output clean JSON without any UI elements
+        output_data = {
+            "total_agents": len(results),
+            "installed_count": installed_count,
+            "configured_count": configured_count,
+            "agents": results
+        }
+        print(json.dumps(output_data, indent=2))
+    else:
+        # Display results in a table
+        table = Table(show_header=True, box=None, padding=(0, 1))
+        table.add_column("Agent", style="white", min_width=15)
+        table.add_column("Status", style="white", width=12)
+        table.add_column("Config", style="white", width=8)
+        
+        for result in results:
+            # Status column
+            if result["installed"]:
+                status = Text("✓ Installed", style="bold green")
+            else:
+                status = Text("✗ Not Found", style="bold red")
+            
+            # Config column  
+            if result["config_exists"]:
+                config_status = Text("✓ Yes", style="green")
+            else:
+                config_status = Text("✗ No", style="red")
+            
+            # Agent name with install URL if available
+            agent_name = result["name"]
+            if not result["installed"] and result["install_url"]:
+                agent_name = f"{agent_name} (install: {result['install_url']})"
+            
+            table.add_row(
+                Text(agent_name, style="cyan"),
+                status,
+                config_status
+            )
+        
+        # Wrap table in a panel
+        summary = f"Found {installed_count}/{len(results)} installed, {configured_count}/{len(results)} configured"
+        panel = Panel(
+            table,
+            title="[bold cyan]AI Agent Status[/bold cyan]",
+            subtitle=f"[bold yellow]{summary}[/bold yellow]",
+            border_style="cyan",
+            padding=(1, 2)
+        )
+        
+        console.print(panel)
+        console.print()
+        
+        if installed_count == 0:
+            console.print("[yellow]No AI agents found installed on your system.[/yellow]")
+            console.print("[dim]Install an agent and run 'mcp init' to get started with MCP servers.[/dim]")
+        elif configured_count == 0:
+            console.print("[yellow]No agents have MCP configuration yet.[/yellow]")
+            console.print("[dim]Run 'mcp init' to configure MCP servers for your installed agents.[/dim]")
+        else:
+            console.print(f"[green]You have {configured_count} agent(s) with MCP configuration.[/green]")
+            console.print("[dim]Run 'mcp list' to see configured servers or 'mcp init' to add more.[/dim]")
 
 @app.command()
 def init(

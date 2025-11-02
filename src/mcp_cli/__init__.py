@@ -1960,6 +1960,32 @@ def check_agent_installation(agent_key: str, agent_config: Dict[str, Any]) -> Di
     return result
 
 @app.command()
+def servers(
+    json_output: bool = typer.Option(True, "--json", help="Output in JSON format (default: true)"),
+    pretty: bool = typer.Option(True, "--pretty/--no-pretty", help="Pretty print JSON output (default: true)"),
+):
+    """Download and output available MCP servers data."""
+    # Download MCP servers
+    available_servers = download_mcp_servers()
+    if not available_servers:
+        error_data = {"error": "Failed to download MCP servers"}
+        if pretty:
+            print(json.dumps(error_data, indent=2))
+        else:
+            print(json.dumps(error_data))
+        raise typer.Exit(1)
+    
+    # Output the servers data
+    if json_output:
+        if pretty:
+            print(json.dumps(available_servers, indent=2))
+        else:
+            print(json.dumps(available_servers))
+    else:
+        # Fallback to pretty print if not JSON (shouldn't happen with current defaults)
+        print(json.dumps(available_servers, indent=2))
+
+@app.command()
 def check(
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Specific agent to check (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),

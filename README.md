@@ -91,6 +91,7 @@ The `mcp` command supports the following options:
 | `add`       | Add MCP servers to existing configuration                     |
 | `list`      | List configured MCP servers                                   |
 | `rm`        | Remove MCP servers from configuration                         |
+| `servers`   | Download and output available MCP servers data in JSON format |
 | `check`     | Check which AI agents are installed on your system            |
 
 ### `mcp init` Arguments & Options
@@ -110,6 +111,13 @@ The `mcp` command supports the following options:
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
 | `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
+
+### `mcp servers` Arguments & Options
+
+| Argument/Option | Type     | Description                                                                  |
+|-----------------|----------|------------------------------------------------------------------------------|
+| `--json` | Option   | Output in JSON format (default: true)                                       |
+| `--pretty/--no-pretty` | Option | Pretty print JSON output (default: true)                                    |
 
 ### `mcp list` Arguments & Options
 
@@ -241,6 +249,22 @@ mcp add git filesystem -a continue --json
 
 # Add servers to project with JSON output
 mcp add git filesystem -a continue -p my-project --json
+```
+
+#### `mcp servers` Examples
+
+```bash
+# Download and output all available MCP servers (pretty printed JSON)
+mcp servers
+
+# Output compact JSON without pretty printing
+mcp servers --no-pretty
+
+# Explicitly request JSON output (default behavior)
+mcp servers --json
+
+# Compact JSON output
+mcp servers --json --no-pretty
 ```
 
 #### `mcp list` Examples

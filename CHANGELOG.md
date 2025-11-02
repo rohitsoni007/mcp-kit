@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased]
+## [0.0.10] - 2025-11-02
 
 ### Added
 - Added support for `mcp check` command to show list of installed agents on the user PC
@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for `mcp list` command to show configured mcp servers
 
 
-## [## [Unreleased]] - 2025-11-01
+## [0.0.9] - 2025-11-01
 
 ### Added
 - LM Studio agent support for MCP server configuration

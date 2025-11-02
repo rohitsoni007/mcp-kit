@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for `mcp list` command to show configured mcp servers
 
 
-## [0.0.9] - 2025-11-01
+## [## [Unreleased]] - 2025-11-01
 
 ### Added
 - LM Studio agent support for MCP server configuration

@@ -1480,6 +1480,163 @@ def list_servers(
 
 
 @app.command()
+def add(
+    servers: Optional[List[str]] = typer.Argument(None, help="MCP server names to add (e.g., 'git', 'filesystem')"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path (use '.' for current directory, omit for global configuration)"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
+):
+    """Add MCP servers to existing configuration."""
+    # Skip banner and UI for JSON output
+    if not json_output:
+        show_banner()
+    
+    # Determine if this is global configuration
+    is_global = project_path is None
+    
+    if not json_output:
+        if is_global:
+            console.print(Panel(
+                Align.center(Text("Global MCP Configuration", style="bold yellow")),
+                title="[bold cyan]Add Mode[/bold cyan]",
+                border_style="yellow",
+                padding=(0, 1),
+                height=3
+            ))
+            console.print()
+        else:
+            console.print(Panel(
+                Align.center(Text(f"Project: {project_path}", style="bold yellow")),
+                title="[bold cyan]Add Mode[/bold cyan]",
+                border_style="yellow",
+                padding=(0, 1),
+                height=3
+            ))
+            console.print()
+    
+    if not is_global:
+        working_directory = Path.cwd()
+        if project_path == ".":
+            target_path = working_directory
+        else:
+            target_path = working_directory / project_path
+            
+        if not target_path.exists():
+            error_msg = f"Project directory does not exist: {target_path}"
+            if json_output:
+                print(json.dumps({"error": error_msg}, indent=2))
+            else:
+                console.print(f"[red]{error_msg}[/red]")
+            raise typer.Exit(1)
+    else:
+        target_path = None
+    
+    # Select agent if not provided
+    if not agent:
+        if json_output:
+            print(json.dumps({"error": "Agent must be specified with --agent when using --json"}, indent=2))
+            raise typer.Exit(1)
+        agent = select_agent()
+        if not agent:
+            console.print("[red]No agent selected. Exiting.[/red]")
+            raise typer.Exit(1)
+    
+    if agent not in AGENT_CONFIG:
+        error_msg = f"Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}"
+        if json_output:
+            print(json.dumps({"error": error_msg}, indent=2))
+        else:
+            console.print(f"[red]{error_msg}[/red]")
+        raise typer.Exit(1)
+    
+    if not json_output:
+        console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
+    
+    # Get configuration path
+    if is_global or agent == "qoder" or agent == "lmstudio":
+        config_path = get_mcp_config_path(agent)
+    else:
+        config_path = get_mcp_config_path(agent, target_path)
+    
+    # Check if servers are provided
+    if not servers:
+        if json_output:
+            print(json.dumps({"error": "No servers specified. Provide server names as arguments (e.g., 'mcp add git filesystem -a continue')"}, indent=2))
+        else:
+            console.print("[red]No servers specified. Provide server names as arguments.[/red]")
+            console.print("[dim]Example: mcp add git filesystem -a continue[/dim]")
+        raise typer.Exit(1)
+    
+    # Download available servers
+    available_servers = download_mcp_servers()
+    if not available_servers:
+        if json_output:
+            print(json.dumps({"error": "Failed to download MCP servers"}, indent=2))
+        raise typer.Exit(1)
+    
+    # Find matching servers
+    selected_servers = []
+    not_found_servers = []
+    
+    for server_name in servers:
+        # Find matching server in available_servers list
+        matched_server = None
+        for server in available_servers:
+            server_mcp = server.get("mcp", {})
+            # Check if any key in the mcp dict matches the server name
+            for mcp_key in server_mcp.keys():
+                if mcp_key == server_name or mcp_key.endswith('/' + server_name.split('/')[-1]):
+                    matched_server = server
+                    break
+            if matched_server:
+                break
+        
+        if matched_server:
+            selected_servers.append(matched_server)
+        else:
+            not_found_servers.append(server_name)
+    
+    if not_found_servers:
+        error_msg = f"Could not find servers: {', '.join(not_found_servers)}"
+        if json_output:
+            print(json.dumps({"error": error_msg, "available_servers": [s["name"] for s in available_servers]}, indent=2))
+        else:
+            console.print(f"[red]{error_msg}[/red]")
+            console.print(f"[dim]Available servers: {', '.join([s['name'] for s in available_servers])}[/dim]")
+        raise typer.Exit(1)
+    
+    if not json_output:
+        console.print(f"\n[bold green]Found {len(selected_servers)} MCP servers to add[/bold green]")
+    
+    # Create configuration
+    config = create_mcp_config(selected_servers, agent)
+    
+    # Save configuration
+    if save_mcp_config(config, config_path, agent, json_output):
+        if json_output:
+            # Output clean JSON without any UI elements
+            output_data = {
+                "agent": agent,
+                "agent_name": AGENT_CONFIG[agent]['name'],
+                "config_path": str(config_path),
+                "is_global": is_global,
+                "operation": "add",
+                "servers_added": [s["name"] for s in selected_servers],
+                "total_servers": len(selected_servers),
+                "success": True
+            }
+            if not is_global:
+                output_data["project_path"] = str(target_path) if target_path else None
+            print(json.dumps(output_data, indent=2))
+        else:
+            console.print(f"\n[bold green]🎉 Successfully added {len(selected_servers)} MCP servers![/bold green]")
+            console.print(f"[green]✓ Configuration updated: {config_path}[/green]")
+    else:
+        if json_output:
+            print(json.dumps({"error": "Failed to save configuration", "success": False}, indent=2))
+        raise typer.Exit(1)
+
+@app.command()
 def rm(
     servers: Optional[List[str]] = typer.Argument(None, help="MCP server names to remove (e.g., 'git', 'filesystem')"),
     all_servers: bool = typer.Option(False, "--all", "-A", help="Remove all MCP servers"),

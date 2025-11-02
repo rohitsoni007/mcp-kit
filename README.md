@@ -88,6 +88,7 @@ The `mcp` command supports the following options:
 | Command     | Description                                                    |
 |-------------|----------------------------------------------------------------|
 | `init`      | Initialize MCP configuration (supports both project-specific and global configuration) |
+| `add`       | Add MCP servers to existing configuration                     |
 | `list`      | List configured MCP servers                                   |
 | `rm`        | Remove MCP servers from configuration                         |
 | `check`     | Check which AI agents are installed on your system            |
@@ -99,6 +100,15 @@ The `mcp` command supports the following options:
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
 | `--servers`, `-s` | Option | MCP server names to add directly. Use multiple times (-s git -s filesystem) or space-separated (-s "git filesystem") - optional |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
+
+### `mcp add` Arguments & Options
+
+| Argument/Option | Type     | Description                                                                  |
+|-----------------|----------|------------------------------------------------------------------------------|
+| `<servers>`     | Argument | MCP server names to add (e.g., 'git', 'filesystem') - required              |
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
 | `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 
 ### `mcp list` Arguments & Options
@@ -203,6 +213,34 @@ mcp init my-project -a gemini
 
 # Initialize MCP for Qoder AI agent in new project directory
 mcp init my-project -a qoder
+```
+
+#### `mcp add` Examples
+
+```bash
+# Add MCP servers to global configuration (simple syntax)
+mcp add git filesystem -a continue
+
+# Add servers for GitHub Copilot AI agent
+mcp add git filesystem -a copilot
+
+# Add servers for Kiro AI agent
+mcp add git filesystem -a kiro
+
+# Add servers for Cursor AI agent
+mcp add git filesystem -a cursor
+
+# Add servers to current directory project
+mcp add git filesystem -a continue -p .
+
+# Add servers to specific project directory
+mcp add git filesystem -a continue -p my-project
+
+# Add servers with JSON output (no banner/UI)
+mcp add git filesystem -a continue --json
+
+# Add servers to project with JSON output
+mcp add git filesystem -a continue -p my-project --json
 ```
 
 #### `mcp list` Examples

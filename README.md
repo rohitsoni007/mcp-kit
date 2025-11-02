@@ -97,7 +97,9 @@ The `mcp` command supports the following options:
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
+| `--servers`, `-s` | Option | MCP server names to add directly (e.g., 'git', 'filesystem') - optional    |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 
 ### `mcp list` Arguments & Options
 
@@ -158,6 +160,18 @@ mcp init -a gemini
 
 # Configure MCP globally for LM Studio AI agent
 mcp init -a lmstudio
+
+# Add specific MCP servers directly without interactive selection
+mcp init -a copilot --servers git filesystem
+
+# Add specific servers for Continue AI with JSON output
+mcp init -a continue --servers git filesystem --json
+
+# Add servers to current directory project
+mcp init . -a copilot --servers git filesystem
+
+# Add servers to new project directory
+mcp init my-project -a continue --servers git filesystem
 
 # Initialize MCP in current directory
 mcp init .

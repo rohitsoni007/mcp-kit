@@ -1153,7 +1153,7 @@ def create_mcp_config(selected_servers: List[Dict[str, Any]], agent: str) -> Dic
     
     return config
 
-def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bool:
+def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str, json_output: bool = False) -> bool:
     """Save MCP configuration to the specified path, merging with existing entries."""
     try:
         # Create directory if it doesn't exist
@@ -1166,11 +1166,16 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
             try:
                 with open(config_path, 'r') as f:
                     existing_config = json.load(f)
-                console.print(f"[yellow]Found existing configuration, merging entries...[/yellow]")
+                if not json_output:
+                    console.print(f"[yellow]Found existing configuration, merging entries...[/yellow]")
             except Exception as e:
-                console.print(f"[yellow]Warning: Could not read existing config: {e}[/yellow]")
-                if not Confirm.ask(f"Continue and merge the file?"):
-                    return False
+                if not json_output:
+                    console.print(f"[yellow]Warning: Could not read existing config: {e}[/yellow]")
+                    if not Confirm.ask(f"Continue and merge the file?"):
+                        return False
+                else:
+                    # In JSON mode, just continue without prompting
+                    pass
         
         # Merge configurations based on agent format
         if agent == "copilot":
@@ -1185,9 +1190,10 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
             
             # Show what's being added
             new_servers = list(config["servers"].keys())
-            console.print(f"[green]Adding {len(new_servers)} servers to existing configuration:[/green]")
-            for server in new_servers:
-                console.print(f"  • {server}")
+            if not json_output:
+                console.print(f"[green]Adding {len(new_servers)} servers to existing configuration:[/green]")
+                for server in new_servers:
+                    console.print(f"  • {server}")
                 
         else:
             # Continue, Kiro, Cursor, Qoder, LM Studio, Claude Agent and other agents format
@@ -1199,19 +1205,22 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str) -> bo
             
             # Show what's being added
             new_servers = list(config["mcpServers"].keys())
-            console.print(f"[green]Adding {len(new_servers)} servers to existing configuration:[/green]")
-            for server in new_servers:
-                console.print(f"  • {server}")
+            if not json_output:
+                console.print(f"[green]Adding {len(new_servers)} servers to existing configuration:[/green]")
+                for server in new_servers:
+                    console.print(f"  • {server}")
         
         # Save merged configuration
         with open(config_path, 'w') as f:
             json.dump(existing_config, f, indent=2)
         
-        console.print(f"[green]✓ MCP configuration saved to {config_path}[/green]")
+        if not json_output:
+            console.print(f"[green]✓ MCP configuration saved to {config_path}[/green]")
         return True
         
     except Exception as e:
-        console.print(f"[red]Failed to save configuration: {str(e)}[/red]")
+        if not json_output:
+            console.print(f"[red]Failed to save configuration: {str(e)}[/red]")
         return False
 
 
@@ -1909,10 +1918,14 @@ def check(
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Name of the project to initialize (use '.' for current directory, omit for global configuration)"),
+    servers: Optional[List[str]] = typer.Option(None, "--servers", "-s", help="MCP server names to add directly (e.g., 'git', 'filesystem')"),
     agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
 ):
     """Initialize MCP configuration in a project directory or globally."""
-    show_banner()
+    # Skip banner and UI for JSON output
+    if not json_output:
+        show_banner()
     
     # Determine if this is global configuration (when no project name is provided)
     is_global = project_name is None
@@ -1921,14 +1934,15 @@ def init(
         # Global configuration mode
         project_info = None
         project_path = None
-        console.print(Panel(
-            Align.center(Text("Global MCP Configuration", style="bold yellow")),
-            title="[bold cyan]Setup Mode[/bold cyan]",
-            border_style="yellow",
-            padding=(0, 1),
-            height=3
-        ))
-        console.print()
+        if not json_output:
+            console.print(Panel(
+                Align.center(Text("Global MCP Configuration", style="bold yellow")),
+                title="[bold cyan]Setup Mode[/bold cyan]",
+                border_style="yellow",
+                padding=(0, 1),
+                height=3
+            ))
+            console.print()
     else:
         # Project-specific configuration mode
         working_directory = Path.cwd()
@@ -1958,79 +1972,132 @@ def init(
         }
         
         # Display project setup information
-        setup_table = Table(show_header=False, box=None, padding=(0, 1))
-        setup_table.add_column("Label", style="cyan", width=18)
-        setup_table.add_column("Path", style="white")
-        
-        setup_table.add_row("Project:", project_name)
-        setup_table.add_row("Working Path:", str(working_directory))
-        setup_table.add_row("Target Path:", str(target_directory))
-        
-        setup_panel = Panel(
-            setup_table,
-            title="[bold cyan]Project Setup[/bold cyan]",
-            border_style="cyan",
-            padding=(1, 2)
-        )
-        
-        console.print(setup_panel)
-        console.print()
-        
-        if project_name != "." and directory_created:
-            console.print(f"[green]✓ Created project directory: {project_path}[/green]")
+        if not json_output:
+            setup_table = Table(show_header=False, box=None, padding=(0, 1))
+            setup_table.add_column("Label", style="cyan", width=18)
+            setup_table.add_column("Path", style="white")
+            
+            setup_table.add_row("Project:", project_name)
+            setup_table.add_row("Working Path:", str(working_directory))
+            setup_table.add_row("Target Path:", str(target_directory))
+            
+            setup_panel = Panel(
+                setup_table,
+                title="[bold cyan]Project Setup[/bold cyan]",
+                border_style="cyan",
+                padding=(1, 2)
+            )
+            
+            console.print(setup_panel)
+            console.print()
+            
+            if project_name != "." and directory_created:
+                console.print(f"[green]✓ Created project directory: {project_path}[/green]")
     
     # Download MCP servers
-    servers = download_mcp_servers()
-    if not servers:
+    available_servers = download_mcp_servers()
+    if not available_servers:
+        if json_output:
+            print(json.dumps({"error": "Failed to download MCP servers"}, indent=2))
         raise typer.Exit(1)
     
-    console.print(f"[green]✓ Downloaded {len(servers)} MCP servers[/green]")
+    if not json_output:
+        console.print(f"[green]✓ Downloaded {len(available_servers)} MCP servers[/green]")
     
     # Select agent if not provided
     if not agent:
+        if json_output:
+            print(json.dumps({"error": "Agent must be specified with --agent when using --json"}, indent=2))
+            raise typer.Exit(1)
         agent = select_agent(project_info)
         if not agent:
             console.print("[red]No agent selected. Exiting.[/red]")
             raise typer.Exit(1)
     
     if agent not in AGENT_CONFIG:
-        console.print(f"[red]Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}[/red]")
+        error_msg = f"Unknown agent: {agent}. Available: {', '.join(AGENT_CONFIG.keys())}"
+        if json_output:
+            print(json.dumps({"error": error_msg}, indent=2))
+        else:
+            console.print(f"[red]{error_msg}[/red]")
         raise typer.Exit(1)
     
-    console.print(f"\n[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
+    if not json_output:
+        console.print(f"\n[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
     
     # Check if agent supports project-level configuration
-    if agent == "qoder":
-        console.print(f"[yellow]⚠️  Note: Qoder does not support project-level MCP configuration.[/yellow]")
-        console.print(f"[yellow]   Configuration will be saved to global Qoder settings instead.[/yellow]")
-        console.print()
-    elif agent == "lmstudio":
-        console.print(f"[yellow]⚠️  Note: LM Studio does not need project-level MCP configuration.[/yellow]")
-        console.print(f"[yellow]   Configuration will be saved to global LM Studio settings instead.[/yellow]")
-        console.print()
-    elif agent == "claude":
-        if is_global:
-            console.print(f"[cyan]ℹ️  Claude global configuration will be saved to ~/.claude.json[/cyan]")
-        else:
-            console.print(f"[cyan]ℹ️  Claude project configuration will be saved to .mcp.json[/cyan]")
-        console.print()
-    elif agent == "gemini":
-        if is_global:
-            console.print(f"[cyan]ℹ️  Gemini global configuration will be saved to ~/.gemini/settings.json[/cyan]")
-        else:
-            console.print(f"[cyan]ℹ️  Gemini project configuration will be saved to .gemini/settings.json[/cyan]")
-        console.print()
+    if not json_output:
+        if agent == "qoder":
+            console.print(f"[yellow]⚠️  Note: Qoder does not support project-level MCP configuration.[/yellow]")
+            console.print(f"[yellow]   Configuration will be saved to global Qoder settings instead.[/yellow]")
+            console.print()
+        elif agent == "lmstudio":
+            console.print(f"[yellow]⚠️  Note: LM Studio does not need project-level MCP configuration.[/yellow]")
+            console.print(f"[yellow]   Configuration will be saved to global LM Studio settings instead.[/yellow]")
+            console.print()
+        elif agent == "claude":
+            if is_global:
+                console.print(f"[cyan]ℹ️  Claude global configuration will be saved to ~/.claude.json[/cyan]")
+            else:
+                console.print(f"[cyan]ℹ️  Claude project configuration will be saved to .mcp.json[/cyan]")
+            console.print()
+        elif agent == "gemini":
+            if is_global:
+                console.print(f"[cyan]ℹ️  Gemini global configuration will be saved to ~/.gemini/settings.json[/cyan]")
+            else:
+                console.print(f"[cyan]ℹ️  Gemini project configuration will be saved to .gemini/settings.json[/cyan]")
+            console.print()
     
-    # Select MCP servers
-    selected_servers = select_mcp_servers(servers, agent, project_info)
-    if selected_servers is None:
-        console.print("[red]Server selection cancelled. Exiting.[/red]")
-        raise typer.Exit(1)
-    if not selected_servers:
-        console.print("[yellow]No servers selected. Exiting.[/yellow]")
-        raise typer.Exit(0)
-    
-    console.print(f"\n[bold green]Selected {len(selected_servers)} MCP servers[/bold green]")
+    # Select MCP servers - either from command line arguments or interactive selection
+    if servers:
+        # Direct server specification via command line
+        selected_servers = []
+        not_found_servers = []
+        
+        for server_name in servers:
+            # Find matching server in available_servers list
+            matched_server = None
+            for server in available_servers:
+                server_mcp = server.get("mcp", {})
+                # Check if any key in the mcp dict matches the server name
+                for mcp_key in server_mcp.keys():
+                    if mcp_key == server_name or mcp_key.endswith('/' + server_name.split('/')[-1]):
+                        matched_server = server
+                        break
+                if matched_server:
+                    break
+            
+            if matched_server:
+                selected_servers.append(matched_server)
+            else:
+                not_found_servers.append(server_name)
+        
+        if not_found_servers:
+            error_msg = f"Could not find servers: {', '.join(not_found_servers)}"
+            if json_output:
+                print(json.dumps({"error": error_msg, "available_servers": [s["name"] for s in available_servers]}, indent=2))
+            else:
+                console.print(f"[red]{error_msg}[/red]")
+                console.print(f"[dim]Available servers: {', '.join([s['name'] for s in available_servers])}[/dim]")
+            raise typer.Exit(1)
+        
+        if not json_output:
+            console.print(f"\n[bold green]Selected {len(selected_servers)} MCP servers directly[/bold green]")
+    else:
+        # Interactive server selection
+        if json_output:
+            print(json.dumps({"error": "Interactive server selection not supported with --json. Specify servers with --servers"}, indent=2))
+            raise typer.Exit(1)
+        
+        selected_servers = select_mcp_servers(available_servers, agent, project_info)
+        if selected_servers is None:
+            console.print("[red]Server selection cancelled. Exiting.[/red]")
+            raise typer.Exit(1)
+        if not selected_servers:
+            console.print("[yellow]No servers selected. Exiting.[/yellow]")
+            raise typer.Exit(0)
+        
+        console.print(f"\n[bold green]Selected {len(selected_servers)} MCP servers[/bold green]")
     
     # Create configuration
     config = create_mcp_config(selected_servers, agent)
@@ -2042,62 +2109,81 @@ def init(
         config_path = get_mcp_config_path(agent, project_path)  # Project-specific path
     
     # Save configuration
-    if save_mcp_config(config, config_path, agent):
-        if is_global:
-            console.print(f"\n[bold green]🎉 MCP global configuration completed successfully![/bold green]")
-            
-            # Show next steps for global configuration
-            console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
-            console.print(f"1. Open {AGENT_CONFIG[agent]['name']}")
-            console.print(f"2. The MCP servers will be loaded from global settings")
-            if agent == "copilot":
-                console.print(f"3. Make sure you have the GitHub Copilot extension installed in VS Code")
-            elif agent == "continue":
-                console.print(f"3. Make sure you have the Continue extension installed in your IDE")
-            elif agent == "kiro":
-                console.print(f"3. The configuration is available across all Kiro projects")
-            elif agent == "cursor":
-                console.print(f"3. The configuration is available across all Cursor projects")
-            elif agent == "qoder":
-                console.print(f"3. The configuration is available across all Qoder projects")
-            elif agent == "lmstudio":
-                console.print(f"3. The configuration is available across all LM Studio projects")
-            elif agent == "claude":
-                console.print(f"3. Use 'claude' command to start a new conversation")
-            elif agent == "gemini":
-                console.print(f"3. Use 'gemini' command to start a new conversation")
+    if save_mcp_config(config, config_path, agent, json_output):
+        if json_output:
+            # Output clean JSON without any UI elements
+            output_data = {
+                "agent": agent,
+                "agent_name": AGENT_CONFIG[agent]['name'],
+                "config_path": str(config_path),
+                "is_global": is_global,
+                "operation": "init",
+                "servers_added": [s["name"] for s in selected_servers],
+                "total_servers": len(selected_servers),
+                "success": True
+            }
+            if not is_global:
+                output_data["project_name"] = project_name
+                output_data["project_path"] = str(project_path) if project_path else None
+            print(json.dumps(output_data, indent=2))
         else:
-            console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
-            
-            # Show next steps for project configuration
-            console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
-            console.print(f"1. Open your project in {AGENT_CONFIG[agent]['name']}")
-            
-            if agent == "qoder":
-                console.print(f"2. The MCP servers will be loaded from global Qoder settings")
-                console.print(f"3. Open the project in Qoder IDE")
-            elif agent == "lmstudio":
-                console.print(f"2. The MCP servers will be loaded from global LM Studio settings")
-                console.print(f"3. Open the chat in LM Studio")
-            else:
-                console.print(f"2. The MCP servers will be automatically loaded from: {config_path.relative_to(project_path)}")
+            if is_global:
+                console.print(f"\n[bold green]🎉 MCP global configuration completed successfully![/bold green]")
+                
+                # Show next steps for global configuration
+                console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
+                console.print(f"1. Open {AGENT_CONFIG[agent]['name']}")
+                console.print(f"2. The MCP servers will be loaded from global settings")
                 if agent == "copilot":
                     console.print(f"3. Make sure you have the GitHub Copilot extension installed in VS Code")
                 elif agent == "continue":
                     console.print(f"3. Make sure you have the Continue extension installed in your IDE")
                 elif agent == "kiro":
-                    console.print(f"3. Open the project in Kiro IDE")
+                    console.print(f"3. The configuration is available across all Kiro projects")
                 elif agent == "cursor":
-                    console.print(f"3. Open the project in Cursor IDE")
+                    console.print(f"3. The configuration is available across all Cursor projects")
+                elif agent == "qoder":
+                    console.print(f"3. The configuration is available across all Qoder projects")
                 elif agent == "lmstudio":
-                    console.print(f"3. Open the chat in LM Studio")
+                    console.print(f"3. The configuration is available across all LM Studio projects")
                 elif agent == "claude":
-                    console.print(f"3. Use 'claude' command in this project directory")
-                    console.print(f"4. The MCP servers will be automatically loaded from .mcp.json")
+                    console.print(f"3. Use 'claude' command to start a new conversation")
                 elif agent == "gemini":
-                    console.print(f"3. Use 'gemini' command in this project directory")
-                    console.print(f"4. The MCP servers will be automatically loaded from .gemini/settings.json")
+                    console.print(f"3. Use 'gemini' command to start a new conversation")
+            else:
+                console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
+                
+                # Show next steps for project configuration
+                console.print(f"\n[bold cyan]Next steps:[/bold cyan]")
+                console.print(f"1. Open your project in {AGENT_CONFIG[agent]['name']}")
+                
+                if agent == "qoder":
+                    console.print(f"2. The MCP servers will be loaded from global Qoder settings")
+                    console.print(f"3. Open the project in Qoder IDE")
+                elif agent == "lmstudio":
+                    console.print(f"2. The MCP servers will be loaded from global LM Studio settings")
+                    console.print(f"3. Open the chat in LM Studio")
+                else:
+                    console.print(f"2. The MCP servers will be automatically loaded from: {config_path.relative_to(project_path)}")
+                    if agent == "copilot":
+                        console.print(f"3. Make sure you have the GitHub Copilot extension installed in VS Code")
+                    elif agent == "continue":
+                        console.print(f"3. Make sure you have the Continue extension installed in your IDE")
+                    elif agent == "kiro":
+                        console.print(f"3. Open the project in Kiro IDE")
+                    elif agent == "cursor":
+                        console.print(f"3. Open the project in Cursor IDE")
+                    elif agent == "lmstudio":
+                        console.print(f"3. Open the chat in LM Studio")
+                    elif agent == "claude":
+                        console.print(f"3. Use 'claude' command in this project directory")
+                        console.print(f"4. The MCP servers will be automatically loaded from .mcp.json")
+                    elif agent == "gemini":
+                        console.print(f"3. Use 'gemini' command in this project directory")
+                        console.print(f"4. The MCP servers will be automatically loaded from .gemini/settings.json")
     else:
+        if json_output:
+            print(json.dumps({"error": "Failed to save configuration", "success": False}, indent=2))
         raise typer.Exit(1)
 
 @app.callback()

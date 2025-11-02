@@ -9,15 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added support for `mcp list -a continue -j` for json output
-- Added support for `mcp check -j` for json output
-- Added support for `mcp rm git -a continue -j` for json output
+- Added support for `mcp check -j` for json output (compact by default, use --pretty for formatted output)
+- Added support for `mcp rm git -a continue -j` for json output (compact by default, use --pretty for formatted output)
 - Added support for `mcp init --servers "git filesystem" -a copilot` to add MCP servers directly without interactive selection
 - Added support for `mcp init -s git -s filesystem -a copilot` (multiple option format)
-- Added support for `mcp init --servers "git filesystem" -a copilot --json` for JSON output without banner/UI
-- Added new `mcp add` command with simple syntax: `mcp add git filesystem -a continue`
-- Added support for `mcp add git filesystem -a continue --json` for JSON output without banner/UI
-- Added new `mcp servers` command to directly output available MCP servers data in JSON format
-- Added support for `mcp servers --no-pretty` for compact JSON output
 
 
 ## [0.0.10] - 2025-11-02

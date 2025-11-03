@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.11] - 2025-11-03
+
 ### Added
 - Added support for `mcp list -a continue -j` for json output
 - Added support for `mcp check -j` for json output (compact by default, use --pretty for formatted output)
@@ -15,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for `mcp init -s git -s filesystem -a copilot` (multiple option format)
 
 
-## [## [Unreleased]] - 2025-11-02
+## [0.0.10] - 2025-11-02
 
 ### Added
 - Added support for `mcp check` command to show list of installed agents on the user PC

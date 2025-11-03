@@ -88,7 +88,7 @@ The `mcp` command supports the following options:
 | Command     | Description                                                    |
 |-------------|----------------------------------------------------------------|
 | `init`      | Initialize MCP configuration (supports both project-specific and global configuration) |
-| `list`      | List configured MCP servers                                   |
+| `list`      | List configured MCP servers or all available servers          |
 | `rm`        | Remove MCP servers from configuration                         |
 | `check`     | Check which AI agents are installed on your system            |
 
@@ -97,7 +97,11 @@ The `mcp` command supports the following options:
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
+| `--servers`, `-s` | Option | MCP server names to add directly. Use multiple times (-s git -s filesystem) or space-separated (-s "git filesystem") - optional |
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
+| `--pretty` | Option | Pretty print JSON output (default: false)                                   |
+
 
 ### `mcp list` Arguments & Options
 
@@ -105,6 +109,9 @@ The `mcp` command supports the following options:
 |-----------------|----------|------------------------------------------------------------------------------|
 | `--agent`, `-a` | Option   | AI agent to list servers for: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
+| `--servers`, `-s` | Option | List all available MCP servers instead of configured ones                   |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
+| `--pretty` | Option | Pretty print JSON output when listing available servers (default: false)     |
 
 ### `mcp rm` Arguments & Options
 
@@ -115,12 +122,16 @@ The `mcp` command supports the following options:
 | `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
 | `--force`, `-f` | Option   | Skip confirmation prompts                                                    |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
+| `--pretty` | Option | Pretty print JSON output (default: false)                                   |
 
 ### `mcp check` Arguments & Options
 
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `--agent`, `-a` | Option   | Specific agent to check: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
+| `--pretty` | Option | Pretty print JSON output (default: false)                                   |
 
 ### 🔧 Usage Examples
 
@@ -156,6 +167,25 @@ mcp init -a gemini
 # Configure MCP globally for LM Studio AI agent
 mcp init -a lmstudio
 
+# Add specific MCP servers directly without interactive selection
+# Method 1: Space-separated in quotes
+mcp init -a copilot --servers "git filesystem"
+
+# Method 2: Multiple option flags
+mcp init -a copilot -s git -s filesystem
+
+# Add specific servers for Continue AI with JSON output (compact)
+mcp init -a continue --servers "git filesystem" --json
+
+# Add specific servers for Continue AI with pretty JSON output
+mcp init -a continue --servers "git filesystem" --json --pretty
+
+# Add servers to current directory project
+mcp init . -a copilot --servers "git filesystem"
+
+# Add servers to new project directory
+mcp init my-project -a continue -s git -s filesystem
+
 # Initialize MCP in current directory
 mcp init .
 
@@ -184,6 +214,7 @@ mcp init my-project -a gemini
 mcp init my-project -a qoder
 ```
 
+
 #### `mcp list` Examples
 
 ```bash
@@ -209,6 +240,25 @@ mcp list -p my-project
 
 # List servers for specific agent from project
 mcp list -a copilot -p my-project
+
+# Output in JSON format (useful for scripting and automation)
+mcp list -a continue --json
+mcp list -a continue -j
+
+# JSON output for project-specific configuration
+mcp list -a continue -p my-project --json
+mcp list -a continue -p my-project -j
+
+# List all available MCP servers (interactive display)
+mcp list --servers
+mcp list -s
+
+# List all available MCP servers with JSON output (pretty printed)
+mcp list --servers --json
+
+# List all available MCP servers with pretty JSON output
+mcp list --servers --json --pretty
+mcp list -s -j --pretty
 ```
 
 #### `mcp rm` Examples
@@ -268,6 +318,24 @@ mcp rm git filesystem --force
 
 # Remove all servers with force
 mcp rm --all --force
+
+# Output in JSON format (useful for scripting and automation)
+mcp rm git filesystem -a continue --json
+mcp rm git filesystem -a continue -j
+
+# Output in pretty JSON format (human-readable)
+mcp rm git filesystem -a continue --json --pretty
+
+# Remove all servers with JSON output
+mcp rm --all -a continue --json
+mcp rm --all -a continue -j
+
+# Remove all servers with pretty JSON output
+mcp rm --all -a continue --json --pretty
+
+# Remove servers from project with JSON output
+mcp rm git filesystem -p my-project -a continue --json
+mcp rm git filesystem -p my-project -a continue -j
 ```
 
 #### `mcp check` Examples
@@ -286,11 +354,20 @@ mcp check -a gemini
 mcp check -a qoder
 mcp check -a lmstudio
 
-# Check all agents installation status
-mcp check
+# Output in JSON format (useful for scripting and automation)
+mcp check --json
+mcp check -j
 
-# Check specific agent installation status
-mcp check -a continue
+# Output in pretty JSON format (human-readable)
+mcp check --json --pretty
+mcp check -j --pretty
+
+# Check specific agent with JSON output
+mcp check -a continue --json
+mcp check -a continue -j
+
+# Check specific agent with pretty JSON output
+mcp check -a continue --json --pretty
 ```
 
 #### General Examples

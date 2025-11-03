@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for `mcp init -s git -s filesystem -a copilot` (multiple option format)
 
 
-## [0.0.10] - 2025-11-02
+## [## [Unreleased]] - 2025-11-02
 
 ### Added
 - Added support for `mcp check` command to show list of installed agents on the user PC

@@ -15,7 +15,7 @@ Usage:
     ./.venv-new/Scripts/Activate.ps1
 """
 
-__version__ = "0.0.10"
+__version__ = "0.0.11"
 
 import os
 import subprocess

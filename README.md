@@ -7,10 +7,10 @@
     <strong>CLI tool to quickly download, configure and deploy MCP servers for AI agents in minutes.</strong>
 </p>
 <p align="center">
-    <a href="https://github.com/rohitsoni007/mcp-kit/actions/workflows/release.yml"><img src="https://github.com/rohitsoni007/mcp-kit/actions/workflows/release.yml/badge.svg" alt="Release"/></a>
-    <a href="https://github.com/rohitsoni007/mcp-kit/stargazers"><img src="https://img.shields.io/github/stars/rohitsoni007/mcp-kit?style=social" alt="GitHub stars"/></a>
-    <a href="https://github.com/rohitsoni007/mcp-kit/blob/main/LICENSE"><img src="https://img.shields.io/github/license/github/spec-kit" alt="License"/></a>
-    <a href="https://github.com/rohitsoni007/mcp-kit/"><img src="https://img.shields.io/badge/docs-GitHub_Pages-blue" alt="Documentation"/></a>
+    <a href="https://github.com/rohitsoni007/mcp-gearbox-cli/actions/workflows/release.yml"><img src="https://github.com/rohitsoni007/mcp-gearbox-cli/actions/workflows/release.yml/badge.svg" alt="Release"/></a>
+    <a href="https://github.com/rohitsoni007/mcp-gearbox-cli/stargazers"><img src="https://img.shields.io/github/stars/rohitsoni007/mcp-gearbox-cli?style=social" alt="GitHub stars"/></a>
+    <a href="https://github.com/rohitsoni007/mcp-gearbox-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/github/spec-kit" alt="License"/></a>
+    <a href="https://github.com/rohitsoni007/mcp-gearbox-cli/"><img src="https://img.shields.io/badge/docs-GitHub_Pages-blue" alt="Documentation"/></a>
 </p>
 
 ---
@@ -25,18 +25,18 @@ MCP Gearbox is a powerful Python CLI dev-tools package that provides an interact
 ### Using uv (recommended)
 
 ```bash
-uv tool install mcp-gearbox --from git+https://github.com/rohitsoni007/mcp-kit
+uv tool install mcp-gearbox --from git+https://github.com/rohitsoni007/mcp-gearbox-cli
 ```
 
 ### To upgrade mcp-cli run:
 ```bash
-uv tool install mcp-gearbox --force --from git+https://github.com/rohitsoni007/mcp-kit
+uv tool install mcp-gearbox --force --from git+https://github.com/rohitsoni007/mcp-gearbox-cli
 ```
 
 ### Using uvx (one-time execution)
 
 ```bash
-uvx --from git+https://github.com/rohitsoni007/mcp-kit mcp-cli
+uvx --from git+https://github.com/rohitsoni007/mcp-gearbox-cli mcp-cli
 ```
 
 ### Using uv & pip
@@ -60,8 +60,8 @@ pip install mcp-gearbox
 ### Development installation
 
 ```bash
-git clone https://github.com/rohitsoni007/mcp-kit
-cd mcp-kit
+git clone https://github.com/rohitsoni007/mcp-gearbox-cli
+cd mcp-gearbox-cli
 uv sync
 ```
 
@@ -397,7 +397,7 @@ mcp -v
 ### Project Structure
 
 ```
-mcp-kit/
+mcp-gearbox-cli/
 ├── src/mcp_cli/           # Main CLI package
 │   ├── __init__.py        # Core CLI functionality
 ├── templates/             # Configuration templates
@@ -419,7 +419,7 @@ mcp-kit/
 
 ## 💬 Support
 
-For support, please open a [GitHub issue](https://github.com/rohitsoni007/mcp-kit/issues/new). We welcome bug reports, feature requests, and questions about using MCP CLI.
+For support, please open a [GitHub issue](https://github.com/rohitsoni007/mcp-gearbox-cli/issues/new). We welcome bug reports, feature requests, and questions about using MCP CLI.
 
 ## 🙏 Acknowledgements
 

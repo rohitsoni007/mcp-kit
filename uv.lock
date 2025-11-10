@@ -267,8 +267,8 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp-cli"
-version = "0.0.8"
+name = "mcp-gearbox"
+version = "0.0.11"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

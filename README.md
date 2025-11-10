@@ -1,7 +1,7 @@
 <div align="center">
-    <img src="./media/logo.png" alt="MCP Gearbox Logo"/>
     <h1>MCP Gearbox</h1>
     <h3><em>Setup high-quality MCP servers faster.</em></h3>
+    <img src="./media/mcp-gearbox-cli.png" alt="MCP Gearbox Logo"/>
 </div>
 <p align="center">
     <strong>CLI tool to quickly download, configure, and deploy Model Context Protocol (MCP) servers for AI agents — cross-platform support for Windows, macOS, and Linux.</strong>
@@ -77,6 +77,7 @@ uv sync
 | **[Claude Code](https://www.claude.com/product/claude-code)** | ✅ |  |
 | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | ✅ |  |
 | **[Qoder](https://qoder.com)** | ⚠️ | Qoder [does not support](https://forum.qoder.com/t/project-specific-mcp-support/260) project-level MCP configuration |
+| **[Copilot CLI](https://github.com/github/copilot-cli)** | ✅ | Copilot CLI does not support project-level MCP configuration |
 | **[LM Studio](https://lmstudio.ai)** | ✅ | LM Studio does not need project-level MCP configuration |
 
 ## 🔧 MCP CLI Reference
@@ -98,7 +99,7 @@ The `mcp` command supports the following options:
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<directory>`   | Argument | Directory to initialize MCP configuration (use `.` for current directory, omit for global configuration)   |
 | `--servers`, `-s` | Option | MCP server names to add directly. Use multiple times (-s git -s filesystem) or space-separated (-s "git filesystem") - optional |
-| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `copilot-cli`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 | `--pretty` | Option | Pretty print JSON output (default: false)                                   |
 
@@ -107,7 +108,7 @@ The `mcp` command supports the following options:
 
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
-| `--agent`, `-a` | Option   | AI agent to list servers for: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--agent`, `-a` | Option   | AI agent to list servers for: `copilot`, `copilot-cli`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
 | `--servers`, `-s` | Option | List all available MCP servers instead of configured ones                   |
 | `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
@@ -119,7 +120,7 @@ The `mcp` command supports the following options:
 |-----------------|----------|------------------------------------------------------------------------------|
 | `<servers>`     | Argument | MCP server names to remove (e.g., 'git', 'filesystem') - optional          |
 | `--all`, `-A`   | Option   | Remove all MCP servers                                                       |
-| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--agent`, `-a` | Option   | AI agent to configure: `copilot`, `copilot-cli`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--project`, `-p` | Option | Project path (use '.' for current directory, omit for global configuration) |
 | `--force`, `-f` | Option   | Skip confirmation prompts                                                    |
 | `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
@@ -129,7 +130,7 @@ The `mcp` command supports the following options:
 
 | Argument/Option | Type     | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
-| `--agent`, `-a` | Option   | Specific agent to check: `copilot`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
+| `--agent`, `-a` | Option   | Specific agent to check: `copilot`, `copilot-cli`, `continue`, `kiro`, `cursor`, `claude`, `gemini`, `qoder`, or `lmstudio`  |
 | `--json`, `-j` | Option   | Output in JSON format without banner or UI                                  |
 | `--pretty` | Option | Pretty print JSON output (default: false)                                   |
 
@@ -145,6 +146,9 @@ mcp init
 
 # Configure MCP globally for GitHub Copilot AI agent
 mcp init -a copilot
+
+# Configure MCP globally for Copilot CLI
+mcp init -a copilot-cli
 
 # Configure MCP globally for Continue AI
 mcp init -a continue
@@ -209,11 +213,7 @@ mcp init my-project -a claude
 
 # Initialize MCP for Gemini CLI in new project directory
 mcp init my-project -a gemini
-
-# Initialize MCP for Qoder AI agent in new project directory
-mcp init my-project -a qoder
 ```
-
 
 #### `mcp list` Examples
 
@@ -224,6 +224,7 @@ mcp list
 
 # List servers for specific agent from global configuration
 mcp list -a copilot
+mcp list -a copilot-cli
 mcp list -a continue
 mcp list -a kiro
 mcp list -a cursor
@@ -270,12 +271,16 @@ mcp rm
 
 # Interactive removal for specific agent
 mcp rm -a copilot
+mcp rm -a copilot-cli
 
 # Remove specific MCP servers from global configuration
 mcp rm git filesystem
 
 # Remove specific servers for GitHub Copilot AI agent
 mcp rm git filesystem -a copilot
+
+# Remove specific servers for Copilot CLI
+mcp rm git filesystem -a copilot-cli
 
 # Remove specific servers for Continue AI
 mcp rm git filesystem -a continue
@@ -297,6 +302,7 @@ mcp rm --all
 
 # Remove all servers for specific agent
 mcp rm --all -a copilot
+mcp rm --all -a copilot-cli
 
 # Interactive removal from current directory configuration
 mcp rm -p .
@@ -346,6 +352,7 @@ mcp check
 
 # Check specific agent installation status
 mcp check -a copilot
+mcp check -a copilot-cli
 mcp check -a continue
 mcp check -a kiro
 mcp check -a cursor

@@ -80,6 +80,12 @@ AGENT_CONFIG = {
         "install_url": None,  # IDE-based, no CLI check needed
         "requires_cli": False,
     },
+    "copilot-cli": {
+        "name": "Copilot CLI",
+        "folder": ".copilot/",
+        "install_url": "https://github.com/github/copilot-cli",
+        "requires_cli": True,
+    },
     "cursor": {
         "name": "Cursor",
         "folder": ".cursor/",
@@ -165,7 +171,7 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
     """Get the MCP configuration path based on the agent and operating system.
     
     Args:
-        agent: The agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)
+        agent: The agent to configure (copilot, copilot-cli, continue, kiro, cursor, qoder, lmstudio, claude, gemini)
         project_path: If provided, returns project-specific path instead of global path
     """
     if project_path:
@@ -193,6 +199,9 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
             return get_mcp_config_path(agent)
         elif agent == "lmstudio":
             # LM Studio does not support project-level configuration, use global path
+            return get_mcp_config_path(agent)
+        elif agent == "copilot-cli":
+            # Copilot CLI does not support project-level configuration, use global path
             return get_mcp_config_path(agent)
     
     # Global/user-level paths (existing functionality)
@@ -222,6 +231,9 @@ def get_mcp_config_path(agent: str = "copilot", project_path: Optional[Path] = N
     elif agent == "lmstudio":
         # LM Studio uses ~/.lmstudio/mcp.json
         return Path.home() / ".lmstudio" / "mcp.json"
+    elif agent == "copilot-cli":
+        # Copilot CLI uses ~/.copilot/mcp-config.json
+        return Path.home() / ".copilot" / "mcp-config.json"
     
     # Default to Copilot configuration path
     system = platform.system().lower()
@@ -478,23 +490,54 @@ def select_servers_to_remove(configured_servers: List[str], available_servers: L
             server_mcp = server.get("mcp", {})
             # Check if any key in the mcp dict matches the configured server name
             for mcp_key in server_mcp.keys():
-                if mcp_key == configured_name or mcp_key.endswith('/' + configured_name.split('/')[-1]):
-                    matched_server = {
-                        'name': server['name'],
-                        'by': server.get('by', 'Unknown'),
-                        'stargazer_count': server.get('stargazer_count', 0),
-                        'configured_name': configured_name,
-                        'mcp_key': mcp_key
-                    }
-                    break
+                # For copilot-cli, convert hyphenated names back to slash format for matching
+                if agent == "copilot-cli":
+                    # Convert configured_name from hyphenated to slash format
+                    if '-' in configured_name and '/' not in configured_name:
+                        slash_name = configured_name.replace('-', '/')
+                        if mcp_key == slash_name or mcp_key.endswith('/' + slash_name.split('/')[-1]):
+                            matched_server = {
+                                'name': server['name'],
+                                'by': server.get('by', 'Unknown'),
+                                'stargazer_count': server.get('stargazer_count', 0),
+                                'configured_name': configured_name,
+                                'mcp_key': mcp_key
+                            }
+                            break
+                else:
+                    # For other agents, use existing matching logic
+                    if mcp_key == configured_name or mcp_key.endswith('/' + configured_name.split('/')[-1]):
+                        matched_server = {
+                            'name': server['name'],
+                            'by': server.get('by', 'Unknown'),
+                            'stargazer_count': server.get('stargazer_count', 0),
+                            'configured_name': configured_name,
+                            'mcp_key': mcp_key
+                        }
+                        break
             if matched_server:
                 break
         
-        # If no match found, create a basic entry
+        # If no match found, create a basic entry with better defaults
         if not matched_server:
+            # For copilot-cli, server names use hyphens instead of slashes
+            if agent == "copilot-cli":
+                name_parts = configured_name.split('-')
+            else:
+                name_parts = configured_name.split('/')
+            
+            if len(name_parts) > 1:
+                # Format: org-name or org/name - use org as 'by' field and name as server name
+                by_org = name_parts[0]
+                server_name = name_parts[-1].title()
+            else:
+                # Format: name - use the name as server name and 'Unknown' as org
+                by_org = 'Unknown'
+                server_name = configured_name.title()
+            
             matched_server = {
-                'name': configured_name.split('/')[-1].title(),
-                'by': 'Unknown',
+                'name': server_name,
+                'by': by_org,
                 'stargazer_count': 0,
                 'configured_name': configured_name,
                 'mcp_key': configured_name
@@ -1137,6 +1180,36 @@ def create_mcp_config(selected_servers: List[Dict[str, Any]], agent: str) -> Dic
             mcp_config = server.get("mcp", {})
             # Copy the internal server data exactly as it is for copilot
             config["servers"].update(mcp_config)
+    elif agent == "copilot-cli":
+        # Copilot CLI format: {"mcpServers": {...}}
+        # For copilot-cli, we need different formats based on server type:
+        # - For stdio type: change to local type and format server name with hyphens
+        # - For http type: include headers field like {"headers": {"CONTEXT7_API_KEY": "YOUR_API_KEY"}}
+        config = {"mcpServers": {}}
+        
+        for server in selected_servers:
+            mcp_config = server.get("mcp", {})
+            for server_key, server_data in mcp_config.items():
+                # Clean the server configuration by removing gallery and version fields
+                cleaned_server_data = {k: v for k, v in server_data.items() if k not in ["gallery", "version"]}
+                
+                # Format server name with hyphens instead of slashes
+                formatted_server_key = server_key.replace("/", "-")
+                
+                # For copilot-cli, change stdio type to local and add tools field
+                if cleaned_server_data.get("type") == "stdio":
+                    cleaned_server_data["type"] = "local"
+                    if "tools" not in cleaned_server_data:
+                        cleaned_server_data["tools"] = ["*"]
+                elif cleaned_server_data.get("type") == "http":
+                    # For http type, add headers field if not present
+                    if "headers" not in cleaned_server_data:
+                        cleaned_server_data["headers"] = {}
+                    # Also add tools field for http type servers
+                    if "tools" not in cleaned_server_data:
+                        cleaned_server_data["tools"] = ["*"]
+                
+                config["mcpServers"][formatted_server_key] = cleaned_server_data
     else:
         # Continue, Kiro, Cursor, Qoder, LM Studio, Claude Agent and other agents format: {"mcpServers": {...}}
         # Remove gallery and version fields for other agents
@@ -1195,6 +1268,20 @@ def save_mcp_config(config: Dict[str, Any], config_path: Path, agent: str, json_
                 for server in new_servers:
                     console.print(f"  • {server}")
                 
+        elif agent == "copilot-cli":
+            # Copilot CLI format
+            if "mcpServers" not in existing_config:
+                existing_config["mcpServers"] = {}
+            
+            # Merge new servers with existing ones
+            existing_config["mcpServers"].update(config["mcpServers"])
+            
+            # Show what's being added
+            new_servers = list(config["mcpServers"].keys())
+            if not json_output:
+                console.print(f"[green]Adding {len(new_servers)} servers to existing configuration:[/green]")
+                for server in new_servers:
+                    console.print(f"  • {server}")
         else:
             # Continue, Kiro, Cursor, Qoder, LM Studio, Claude Agent and other agents format
             if "mcpServers" not in existing_config:
@@ -1241,6 +1328,8 @@ def list_configured_servers(config: Dict[str, Any], agent: str) -> List[str]:
     """List all configured MCP servers from the configuration."""
     if agent == "copilot":
         return list(config.get("servers", {}).keys())
+    elif agent == "copilot-cli":
+        return list(config.get("mcpServers", {}).keys())
     else:
         return list(config.get("mcpServers", {}).keys())
 
@@ -1251,6 +1340,8 @@ def remove_servers_from_config(config: Dict[str, Any], servers_to_remove: List[s
     
     if agent == "copilot":
         servers_dict = config.get("servers", {})
+    elif agent == "copilot-cli":
+        servers_dict = config.get("mcpServers", {})
     else:
         servers_dict = config.get("mcpServers", {})
     
@@ -1261,11 +1352,11 @@ def remove_servers_from_config(config: Dict[str, Any], servers_to_remove: List[s
             removed_servers.append(server_name)
         else:
             # Try partial matching - look for servers that end with the given name
-            # This allows "fetch" to match "modelcontextprotocol/fetch"
+            # This allows "fetch" to match "modelcontextprotocol/fetch" or "modelcontextprotocol-fetch" for copilot-cli
             matches = []
             for full_name in servers_dict.keys():
-                # Check if the server name ends with the given name (after a slash)
-                if full_name.endswith('/' + server_name) or full_name == server_name:
+                # Check if the server name ends with the given name (after a slash or hyphen)
+                if full_name.endswith('/' + server_name) or full_name.endswith('-' + server_name) or full_name == server_name:
                     matches.append(full_name)
             
             if len(matches) == 1:
@@ -1288,7 +1379,7 @@ def remove_servers_from_config(config: Dict[str, Any], servers_to_remove: List[s
 
 @app.command("list")
 def list_servers(
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to list servers for (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to list servers for (copilot, copilot-cli, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path (use '.' for current directory, omit for global configuration)"),
     available_servers: bool = typer.Option(False, "--servers", "-s", help="List all available MCP servers instead of configured ones"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
@@ -1435,7 +1526,7 @@ def list_servers(
         console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
     
     # Get configuration path
-    if is_global or agent == "qoder" or agent == "lmstudio":
+    if is_global or agent == "qoder" or agent == "lmstudio" or agent == "copilot-cli":
         config_path = get_mcp_config_path(agent)
     else:
         config_path = get_mcp_config_path(agent, target_path)
@@ -1479,24 +1570,56 @@ def list_servers(
             server_mcp = server.get("mcp", {})
             # Check if any key in the mcp dict matches the configured server name
             for mcp_key in server_mcp.keys():
-                if mcp_key == configured_name or mcp_key.endswith('/' + configured_name.split('/')[-1]):
-                    matched_server = {
-                        'name': server['name'],
-                        'by': server.get('by', 'Unknown'),
-                        'stargazer_count': server.get('stargazer_count', 0),
-                        'configured_name': configured_name,
-                        'mcp_key': mcp_key,
-                        'description': server.get('description', 'No description available')
-                    }
-                    break
+                # For copilot-cli, convert hyphenated names back to slash format for matching
+                if agent == "copilot-cli":
+                    # Convert configured_name from hyphenated to slash format
+                    if '-' in configured_name and '/' not in configured_name:
+                        slash_name = configured_name.replace('-', '/')
+                        if mcp_key == slash_name or mcp_key.endswith('/' + slash_name.split('/')[-1]):
+                            matched_server = {
+                                'name': server['name'],
+                                'by': server.get('by', 'Unknown'),
+                                'stargazer_count': server.get('stargazer_count', 0),
+                                'configured_name': configured_name,
+                                'mcp_key': mcp_key,
+                                'description': server.get('description', 'No description available')
+                            }
+                            break
+                else:
+                    # For other agents, use existing matching logic
+                    if mcp_key == configured_name or mcp_key.endswith('/' + configured_name.split('/')[-1]):
+                        matched_server = {
+                            'name': server['name'],
+                            'by': server.get('by', 'Unknown'),
+                            'stargazer_count': server.get('stargazer_count', 0),
+                            'configured_name': configured_name,
+                            'mcp_key': mcp_key,
+                            'description': server.get('description', 'No description available')
+                        }
+                        break
             if matched_server:
                 break
         
-        # If no match found, create a basic entry
+        # If no match found, create a basic entry with better defaults
         if not matched_server:
+            # For copilot-cli, server names use hyphens instead of slashes
+            if agent == "copilot-cli":
+                name_parts = configured_name.split('-')
+            else:
+                name_parts = configured_name.split('/')
+            
+            if len(name_parts) > 1:
+                # Format: org-name or org/name - use org as 'by' field and name as server name
+                by_org = name_parts[0]
+                server_name = name_parts[-1].title()
+            else:
+                # Format: name - use the name as server name and 'Unknown' as org
+                by_org = 'Unknown'
+                server_name = configured_name.title()
+            
             matched_server = {
-                'name': configured_name.split('/')[-1].title(),
-                'by': 'Unknown',
+                'name': server_name,
+                'by': by_org,
                 'stargazer_count': 0,
                 'configured_name': configured_name,
                 'mcp_key': configured_name,
@@ -1565,7 +1688,7 @@ def list_servers(
 def rm(
     servers: Optional[List[str]] = typer.Argument(None, help="MCP server names to remove (e.g., 'git', 'filesystem')"),
     all_servers: bool = typer.Option(False, "--all", "-A", help="Remove all MCP servers"),
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, copilot-cli, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path (use '.' for current directory, omit for global configuration)"),
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompts"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
@@ -1639,7 +1762,7 @@ def rm(
         console.print(f"[bold green]Selected Agent: {AGENT_CONFIG[agent]['name']}[/bold green]")
     
     # Get configuration path
-    if is_global or agent == "qoder" or agent == "lmstudio":
+    if is_global or agent == "qoder" or agent == "lmstudio" or agent == "copilot-cli":
         config_path = get_mcp_config_path(agent)
     else:
         config_path = get_mcp_config_path(agent, target_path)
@@ -1833,6 +1956,7 @@ def check_agent_installation(agent_key: str, agent_config: Dict[str, Any]) -> Di
             cli_commands = {
                 "claude": ["claude", "--version"],
                 "gemini": ["gemini", "--version"],
+                "copilot-cli": ["copilot", "--version"],
             }
             
             if agent_key in cli_commands:
@@ -1891,7 +2015,7 @@ def check_agent_installation(agent_key: str, agent_config: Dict[str, Any]) -> Di
 
 @app.command()
 def check(
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Specific agent to check (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Specific agent to check (copilot, copilot-cli, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
     pretty: bool = typer.Option(False, "--pretty", help="Pretty print JSON output (default: false)"),
 ):
@@ -2010,7 +2134,7 @@ def check(
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Name of the project to initialize (use '.' for current directory, omit for global configuration)"),
     servers: Optional[List[str]] = typer.Option(None, "--servers", "-s", help="MCP server names to add directly. Use multiple times (-s git -s filesystem) or space-separated (-s 'git filesystem')"),
-    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent to configure (copilot, copilot-cli, continue, kiro, cursor, qoder, lmstudio, claude, gemini)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output in JSON format without banner or UI"),
     pretty: bool = typer.Option(False, "--pretty", help="Pretty print JSON output (default: false)"),
 ):
@@ -2123,6 +2247,10 @@ def init(
             console.print(f"[yellow]⚠️  Note: Qoder does not support project-level MCP configuration.[/yellow]")
             console.print(f"[yellow]   Configuration will be saved to global Qoder settings instead.[/yellow]")
             console.print()
+        elif agent == "copilot-cli":
+            console.print(f"[yellow]⚠️  Note: Copilot CLI does not support project-level MCP configuration.[/yellow]")
+            console.print(f"[yellow]   Configuration will be saved to global Copilot CLI settings instead.[/yellow]")
+            console.print()
         elif agent == "lmstudio":
             console.print(f"[yellow]⚠️  Note: LM Studio does not need project-level MCP configuration.[/yellow]")
             console.print(f"[yellow]   Configuration will be saved to global LM Studio settings instead.[/yellow]")
@@ -2201,7 +2329,7 @@ def init(
     config = create_mcp_config(selected_servers, agent)
     
     # Get configuration path based on mode (global vs project-specific)
-    if is_global or agent == "qoder" or agent == "lmstudio":
+    if is_global or agent == "qoder" or agent == "lmstudio" or agent == "copilot-cli":
         config_path = get_mcp_config_path(agent)  # Global path
     else:
         config_path = get_mcp_config_path(agent, project_path)  # Project-specific path
@@ -2251,6 +2379,8 @@ def init(
                     console.print(f"3. Use 'claude' command to start a new conversation")
                 elif agent == "gemini":
                     console.print(f"3. Use 'gemini' command to start a new conversation")
+                elif agent == "copilot-cli":
+                    console.print(f"3. Use 'copilot' command to start a new conversation")
             else:
                 console.print(f"\n[bold green]🎉 MCP project initialization completed successfully![/bold green]")
                 
@@ -2261,6 +2391,9 @@ def init(
                 if agent == "qoder":
                     console.print(f"2. The MCP servers will be loaded from global Qoder settings")
                     console.print(f"3. Open the project in Qoder IDE")
+                elif agent == "copilot-cli":
+                    console.print(f"2. The MCP servers will be loaded from global Copilot CLI settings")
+                    console.print(f"3. Open the chat in Copilot CLI")
                 elif agent == "lmstudio":
                     console.print(f"2. The MCP servers will be loaded from global LM Studio settings")
                     console.print(f"3. Open the chat in LM Studio")

@@ -66,7 +66,7 @@ AGENT_CONFIG = {
         "name": "Claude Code",
         "folder": ".claude/",
         "install_url": "https://www.claude.com/product/claude-code",
-        "requires_cli": True,
+        "requires_cli": False,
     },
     "continue": {
         "name": "Continue",
@@ -1954,7 +1954,7 @@ def check_agent_installation(agent_key: str, agent_config: Dict[str, Any]) -> Di
         try:
             # Try to run the CLI command to check if it's available
             cli_commands = {
-                "claude": ["claude", "--version"],
+                # "claude": ["claude", "--version"], comment not working with electron
                 "gemini": ["gemini", "--version"],
                 "copilot-cli": ["copilot", "--version"],
             }

@@ -1,5 +1,5 @@
 <div align="center">
-    <h1>MCP Gearbox</h1>
+    <h1>MCP Gearbox CLI</h1>
     <h3><em>Setup high-quality MCP servers faster.</em></h3>
     <img src="./media/mcp-gearbox-cli.png" alt="MCP Gearbox Logo"/>
 </div>
@@ -12,6 +12,10 @@
     <a href="https://github.com/rohitsoni007/mcp-gearbox-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/github/spec-kit" alt="License"/></a>
     <a href="https://github.com/rohitsoni007/mcp-gearbox-cli/"><img src="https://img.shields.io/badge/docs-GitHub_Pages-blue" alt="Documentation"/></a>
 </p>
+
+## Documentation
+
+For detailed usage instructions, please visit our [documentation](https://rohitsoni007.github.io/mcp-gearbox).
 
 ---
 

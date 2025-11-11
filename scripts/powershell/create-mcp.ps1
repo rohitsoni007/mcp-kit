@@ -252,8 +252,28 @@ foreach ($server in $servers) {
     }
     
     # Add mcp configuration
-    $mcpObject["mcp"] = [ordered]@{
-        $name = $mcpEntry
+    $mcpObject["mcp"] = [ordered]@{}
+    $mcpObject["mcp"].Add($name, $mcpEntry)
+
+    # Check for duplicate names and handle them
+    $duplicateCount = 0
+    foreach ($existingServer in $formattedData) {
+        if ($existingServer.name -eq $mcpObject.name) {
+            $duplicateCount++
+        }
+    }
+
+    # If it's a duplicate, modify the display name to use the MCP key for differentiation
+    if ($duplicateCount -gt 0) {
+        # Extract the organization name from the MCP key (e.g., "microsoftdocs" from "microsoftdocs/mcp")
+        if ($name -and $name.Contains("/")) {
+            $orgName = ($name -split "/")[0]
+            # Capitalize first letter
+            $capitalizedOrg = $orgName.Substring(0,1).ToUpper() + $orgName.Substring(1).ToLower()
+            $mcpObject["name"] = "$capitalizedOrg-" + $mcpObject.name
+        } else {
+            $mcpObject["name"] = "$($duplicateCount + 1)-" + $mcpObject.name
+        }
     }
 
     $formattedData += $mcpObject

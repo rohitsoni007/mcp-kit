@@ -2284,6 +2284,10 @@ def init(
             # Find matching server in available_servers list
             matched_server = None
             for server in available_servers:
+                lower_name = server['name'].lower()
+                if lower_name == server_name:
+                    matched_server = server
+                    break
                 server_mcp = server.get("mcp", {})
                 # Check if any key in the mcp dict matches the server name
                 for mcp_key in server_mcp.keys():

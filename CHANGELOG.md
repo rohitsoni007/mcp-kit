@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for Copilot CLI agent in MCP server configuration
 - Fix for Sequential-Thinking server in MCP server configuration
 
-## [0.0.11] - 2025-11-03
+## [## [Unreleased]] - 2025-11-03
 
 ### Added
 - Added support for `mcp list -a continue -j` for json output

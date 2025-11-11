@@ -269,6 +269,32 @@ for i in $(seq 0 $((server_count - 1))); do
         mcp_object=$(echo "$mcp_object" | jq --arg by "$by_organization" '.by = $by')
     fi
     
+    # Check for duplicate names and handle them
+    duplicate_count=0
+    temp_data=$(echo "$formatted_data" | jq -c)
+    for row in $(echo "$formatted_data" | jq -r '.[] | @base64'); do
+        _jq() {
+            echo ${row} | base64 --decode | jq -r ${1}
+        }
+        existing_name=$(_jq '.name')
+        if [ "$existing_name" = "$simple_name" ]; then
+            duplicate_count=$((duplicate_count + 1))
+        fi
+    done
+    
+    # If it's a duplicate, modify the display name to use the MCP key for differentiation
+    if [ "$duplicate_count" -gt 0 ]; then
+        # Extract the organization name from the MCP key (e.g., "microsoftdocs" from "microsoftdocs/mcp")
+        if [[ "$name" == *"/"* ]]; then
+            org_name=$(echo "$name" | cut -d'/' -f1)
+            # Capitalize first letter
+            capitalized_org="$(echo "${org_name:0:1}" | tr '[:lower:]' '[:upper:]')${org_name:1}"
+            mcp_object=$(echo "$mcp_object" | jq --arg new_name "$capitalized_org-$simple_name" '.name = $new_name')
+        else
+            mcp_object=$(echo "$mcp_object" | jq --arg new_name "$((duplicate_count + 1))-$simple_name" '.name = $new_name')
+        fi
+    fi
+    
     # Add to formatted data array
     formatted_data=$(echo "$formatted_data" | jq ". += [$mcp_object]")
 done

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix duplicate name issue & functionality
 - fix sequential-thinking
 
-## [0.0.12]
+## [## [Unreleased]]
 
 ### Added
 - Added support for Copilot CLI agent in MCP server configuration
